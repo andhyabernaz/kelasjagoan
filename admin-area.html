@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <script src="config.js?v=2026"></script>
+
+    <script>
+        (function() {
+            const CACHE_KEY = 'melimpah_global_settings';
+            const CACHE_AGE = 60 * 60 * 1000; 
+
+            function applyGlobalSettings(data) {
+                // Eksekusi Cepat (Favicon & Title Browser)
+                if(data.site_favicon) {
+                    let link = document.querySelector("link[rel~='icon']");
+                    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+                    link.href = data.site_favicon;
+                }
+                
+                // Auto Replace Text di Title Browser
+                if(data.site_name) {
+                    document.title = document.title.replace(/Melimpah Digital/gi, data.site_name).replace(/Melimpah/gi, data.site_name);
+                }
+
+                const updateDomElements = () => {
+                    // INJEKSI NAMA WEB
+                    if(data.site_name) {
+                        document.querySelectorAll('.dyn-site-name').forEach(el => {
+                            el.innerText = data.site_name;
+                        });
+                    }
+                    // INJEKSI TAGLINE WEB (Jika suatu saat dibutuhkan di Admin)
+                    if(data.site_tagline) {
+                        document.querySelectorAll('.dyn-site-tagline').forEach(el => {
+                            el.innerText = data.site_tagline;
+                        });
+                    }
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', updateDomElements);
+                } else {
+                    updateDomElements();
+                }
+            }
+
+            const cachedStr = localStorage.getItem(CACHE_KEY);
+            let cached = null;
+            try { cached = JSON.parse(cachedStr); } catch(e){}
+            const now = Date.now();
+
+            if (cached && cached.data) {
+                applyGlobalSettings(cached.data);
+            }
+
+            if (!cached || !cached.time || (now - cached.time > CACHE_AGE)) {
+                if(typeof SCRIPT_URL === 'undefined') { console.error("SCRIPT_URL belum didefinisikan di config.js!"); return; }
+                fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_global_settings' }) })
+                    .then(res => res.json())
+                    .then(r => {
+                        if(r.status === 'success') {
+                            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: r.data, time: now }));
+                            applyGlobalSettings(r.data); 
+                        }
+                    }).catch(e => console.error("Global Settings Sync Failed", e));
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpotAdmin V11.10 - Melimpah Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        #admin-main { display: none; }
+        .nav-item.active { background: #4f46e5; color: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2); }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Mobile Sidebar State */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); position: fixed; z-index: 50; }
+            #sidebar.open { transform: translateX(0); }
+            #sidebar-overlay { display: none; }
+            #sidebar-overlay.open { display: block; }
+        }
+
+        /* CUSTOM TOAST CSS */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+        .toast { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); max-width: 350px; line-height: 1.4; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #10b981; }
+        .toast.error { background-color: #ef4444; }
+        .toast.warning { background-color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] relative">
+
+    <div id="toast-container"></div>
+
+    <div id="login-overlay" class="fixed inset-0 bg-[#f8f9fa] z-[200] flex items-center justify-center p-4 md:p-6 relative overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-40"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-200 rounded-full mix-blend-multiply filter blur-[100px] opacity-40"></div>
+        <div class="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative z-10 border border-slate-100 fade-in-up">
+            <div class="md:w-5/12 bg-slate-900 p-10 md:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-600/30 to-transparent"></div>
+                <div class="relative z-10"><h2 class="text-3xl font-black tracking-tighter mb-1 uppercase">SPOTADMIN</h2><p class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest dyn-site-name">Melimpah Digital</p></div>
+                <div class="relative z-10 mt-12 md:mt-0"><h3 class="text-2xl font-bold mb-4 leading-tight">Area Terbatas! 🛡️</h3><p class="text-slate-400 text-sm leading-relaxed mb-8">Login khusus Master Control <span class="dyn-site-name">Melimpah Digital</span>.</p></div>
+            </div>
+            <div class="md:w-7/12 p-10 md:p-14 bg-white">
+                <div class="mb-10"><h1 class="text-3xl font-black text-slate-800 mb-2 text-center md:text-left">Login Master</h1></div>
+                <form id="form-login" class="space-y-6">
+                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Email Master</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400"><i data-lucide="mail" class="w-5 h-5"></i></div><input type="email" id="adm-email" class="w-full pl-14 p-4 bg-[#ebf2ff] rounded-2xl border-none outline-none focus:ring-2 focus:ring-indigo-400/50 font-bold text-slate-700" required></div></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Password</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400"><i data-lucide="lock" class="w-5 h-5"></i></div><input type="password" id="adm-pass" class="w-full pl-14 pr-14 p-4 bg-[#ebf2ff] rounded-2xl border-none outline-none focus:ring-2 focus:ring-indigo-400/50 font-bold text-slate-700" required><button type="button" onclick="togglePass()" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-indigo-600 focus:outline-none"><i data-lucide="eye" id="eye-icon" class="w-5 h-5"></i></button></div></div>
+                    <button type="submit" id="btn-login" class="w-full bg-indigo-600 text-white p-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all uppercase text-xs mt-4">Masuk Panel</button>
+                </form>
+                <div class="mt-8 text-center border-t border-slate-50 pt-8"><a href="index.html" class="text-slate-400 text-xs font-bold hover:text-indigo-600 uppercase tracking-widest">&larr; Kembali ke Beranda</a></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-main" class="flex h-screen w-screen overflow-hidden">
+        
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 z-40 md:hidden"></div>
+
+        <aside id="sidebar" class="w-72 bg-slate-900 text-slate-400 flex flex-col h-full flex-shrink-0 shadow-2xl relative">
+            <div class="p-8 text-2xl font-black text-white tracking-tighter border-b border-slate-800 flex justify-between items-center">
+                <span>SPOTADMIN</span>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <nav class="p-6 space-y-2 flex-1 overflow-y-auto custom-scroll">
+                <button onclick="switchTab('orders')" id="nav-orders" class="nav-item active w-full flex items-center gap-3 p-4 font-bold text-sm"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</button>
+                <button onclick="switchTab('products')" id="nav-products" class="nav-item w-full flex items-center gap-3 p-4 font-bold text-sm"><i data-lucide="package" class="w-5 h-5"></i> Produk</button>
+                <button onclick="switchTab('pages')" id="nav-pages" class="nav-item w-full flex items-center gap-3 p-4 font-bold text-sm"><i data-lucide="file-text" class="w-5 h-5"></i> Halaman CMS</button>
+                <button onclick="switchTab('media')" id="nav-media" class="nav-item w-full flex items-center gap-3 p-4 font-bold text-sm"><i data-lucide="image" class="w-5 h-5"></i> Media Center</button>
+                <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-3 p-4 font-bold text-sm border-t border-slate-800 pt-8 mt-5"><i data-lucide="settings" class="w-5 h-5"></i> Pengaturan</button>
+            </nav>
+            <div class="p-8 border-t border-slate-800 space-y-4">
+                <a href="index.html" target="_blank" class="w-full flex items-center gap-3 text-indigo-400 hover:text-indigo-300 font-bold text-xs"><i data-lucide="external-link" class="w-4 h-4"></i> Kunjungi Website</a>
+                <button onclick="logout()" class="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 font-bold text-xs"><i data-lucide="log-out" class="w-4 h-4"></i> Keluar Panel</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto h-full p-6 md:p-10 custom-scroll bg-[#f8f9fa]">
+            <header class="flex justify-between items-center mb-8 sticky top-0 bg-[#f8f9fa]/80 backdrop-blur-md py-4 z-30">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="md:hidden p-3 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-600"><i data-lucide="menu" class="w-6 h-6"></i></button>
+                    <h2 id="tab-title" class="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">Dashboard</h2>
+                </div>
+                <div class="flex items-center gap-3 md:gap-4 bg-white p-2 rounded-2xl border shadow-sm px-4">
+                    <span id="sync-status" class="text-[8px] md:text-[10px] bg-slate-100 text-slate-400 px-2 md:px-3 py-1 rounded-full hidden animate-pulse font-bold tracking-widest uppercase">Sync...</span>
+                    <span id="admin-name" class="font-bold text-slate-800 text-xs md:text-sm hidden sm:block">Admin</span>
+                    <div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-black">A</div>
+                    <button onclick="forceSync()" class="p-2 text-slate-400 hover:text-indigo-600 transition" title="Refresh Data"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                </div>
+            </header>
+
+            <div id="tab-orders" class="tab-content active">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><i data-lucide="shopping-bag" class="w-6 h-6 md:w-8 md:h-8"></i></div>
+                        <div><p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Pesanan</p><h3 id="stat-orders" class="text-xl md:text-3xl font-black text-slate-800">0</h3></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center"><i data-lucide="wallet" class="w-6 h-6 md:w-8 md:h-8"></i></div>
+                        <div><p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cuan (Lunas)</p><h3 id="stat-rev" class="text-xl md:text-3xl font-black text-slate-800 text-emerald-600">Rp 0</h3></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-x-auto custom-scroll">
+                    <table class="w-full text-left text-sm min-w-[600px]">
+                        <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                            <tr><th class="p-6">Invoice</th><th class="p-6">Customer</th><th class="p-6">Produk</th><th class="p-6">Status</th><th class="p-6">Aksi</th></tr>
+                        </thead>
+                        <tbody id="list-orders" class="divide-y text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-products" class="tab-content">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <h3 class="font-bold text-slate-500 uppercase text-xs tracking-widest">Katalog Produk (<span id="count-prod">0</span>)</h3>
+                    <button onclick="openProdModal()" class="w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:scale-105 transition-all text-xs uppercase">+ Produk</button>
+                </div>
+                <div id="list-products" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"></div>
+            </div>
+
+            <div id="tab-pages" class="tab-content">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <h3 class="font-bold text-slate-500 uppercase text-xs tracking-widest">Halaman CMS</h3>
+                    <button onclick="openPageModal()" class="w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg text-xs uppercase tracking-widest">+ Buat Halaman</button>
+                </div>
+                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-x-auto custom-scroll">
+                    <table class="w-full text-left text-sm min-w-[600px] table-fixed">
+                        <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                            <tr><th class="p-6 w-1/3">Judul</th><th class="p-6 w-1/2">URL Halaman</th><th class="p-6 w-1/6 text-right">Aksi</th></tr>
+                        </thead>
+                        <tbody id="list-pages" class="divide-y text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-media" class="tab-content">
+                <div class="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10">
+                    <h3 class="text-2xl font-black text-slate-800 mb-2 italic">Media Center</h3>
+                    <p class="text-slate-400 text-sm mb-8">Upload ke CDN ImageKit.</p>
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <input type="file" id="media-file" class="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 outline-none">
+                        <button onclick="uploadMedia()" id="btn-upload" class="w-full md:w-auto bg-emerald-500 text-white px-10 py-5 rounded-2xl font-black shadow-lg text-xs">UPLOAD</button>
+                    </div>
+                </div>
+                <div id="media-res-box" class="hidden bg-emerald-50 border border-emerald-100 p-6 md:p-8 rounded-[2rem]">
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <input type="text" id="media-url-res" readonly class="w-full p-4 bg-white border border-emerald-200 rounded-xl font-mono text-xs">
+                        <button onclick="copyLink()" class="w-full md:w-auto bg-emerald-600 text-white px-8 rounded-xl font-bold text-xs">COPY</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="tab-content">
+                <div class="bg-white p-6 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm mb-10">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-4 mb-8 gap-4">
+                        <h3 class="text-xl font-black text-slate-800 italic flex items-center gap-3"><i data-lucide="cloud-lightning" class="text-amber-500"></i> Cloudflare CDN</h3>
+                        <button onclick="triggerPurgeCache()" id="btn-purge" class="w-full sm:w-auto bg-amber-500 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-amber-600 flex items-center justify-center gap-2"><i data-lucide="eraser" class="w-4 h-4"></i> Purge CF Cache</button>
+                    </div>
+                    <form id="form-cf" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Zone ID</label><input type="text" id="set-cf-zone" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl outline-none font-mono text-xs"></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">API Token</label><input type="password" id="set-cf-token" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl outline-none font-mono text-xs"></div>
+                        <button type="submit" class="md:col-span-2 w-full bg-slate-900 text-white p-5 rounded-xl font-black uppercase text-xs shadow-xl">Simpan Kunci Cloudflare</button>
+                    </form>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 pb-10">
+                    <div class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 class="text-xl font-black text-slate-800 mb-8 border-b pb-4 italic">Branding Web</h3>
+                        <form id="form-branding" class="space-y-6">
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Nama Website (Baru)</label><input type="text" id="set-site-name" placeholder="Misal: KelasJuara" class="w-full p-4 bg-slate-50 border rounded-xl outline-none"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Tagline (Baru)</label><input type="text" id="set-site-tagline" placeholder="Misal: Platform Edukasi Terbaik" class="w-full p-4 bg-slate-50 border rounded-xl outline-none"></div>
+                            
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Logo URL</label><input type="text" id="set-logo" class="w-full p-4 bg-slate-50 border rounded-xl outline-none"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Favicon URL</label><input type="text" id="set-favicon" class="w-full p-4 bg-slate-50 border rounded-xl outline-none"></div>
+                            <button type="submit" class="w-full bg-slate-900 text-white p-5 rounded-xl font-black uppercase text-xs">Simpan Branding</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 class="text-xl font-black text-slate-800 mb-8 border-b pb-4 italic">API Sistem</h3>
+                        <form id="form-sys" class="space-y-4">
+                            <div><label class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest ml-2 mb-2 block">Fonnte Token (WA)</label><input type="text" id="set-fonnte" class="w-full p-4 bg-emerald-50 border border-emerald-100 rounded-xl outline-none font-mono text-xs"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">WA Admin</label><input type="text" id="set-wa" class="w-full p-4 bg-slate-50 border rounded-xl outline-none"></div>
+                            <button type="submit" class="w-full bg-indigo-600 text-white p-5 rounded-xl font-black uppercase text-xs mt-4">Update API Sistem</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-confirm" class="fixed inset-0 bg-slate-900/60 z-[400] hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center transform transition-transform scale-95" id="modal-confirm-content">
+            <div class="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="help-circle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Konfirmasi</h3>
+            <p class="text-sm text-slate-500 mb-6" id="confirm-msg">Aktifkan akses materi (Lunas) untuk user ini?</p>
+            <div class="flex gap-3">
+                <button id="btn-confirm-cancel" class="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors">Batal</button>
+                <button id="btn-confirm-ok" class="flex-1 bg-amber-500 text-white hover:bg-amber-600 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors shadow-lg shadow-amber-200">Ya, Aktifkan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-prod" class="fixed inset-0 bg-slate-900/80 hidden z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-xl rounded-[2.5rem] p-8 md:p-10 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-black mb-8 italic text-slate-800">Setup Produk</h3>
+            <form id="form-prod" class="space-y-4">
+                <input type="hidden" id="p-is-edit">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="text" id="p-id" placeholder="ID (PRD-01)" class="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" required>
+                    <input type="number" id="p-harga" placeholder="Harga (Rp)" class="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" required>
+                </div>
+                <input type="text" id="p-title" placeholder="Nama Produk" class="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" required>
+                <input type="text" id="p-lp" placeholder="Landing Page URL (Contoh: p.html?s=promo)" class="w-full p-4 bg-indigo-50 border border-indigo-200 rounded-xl font-bold text-indigo-600 outline-none" required>
+                <input type="text" id="p-url" placeholder="Link Akses Materi" class="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" required>
+                <textarea id="p-desc" placeholder="Deskripsi Singkat" class="w-full p-4 bg-slate-50 border rounded-xl outline-none h-24 font-medium"></textarea>
+                <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                    <button type="button" onclick="closeModal('modal-prod')" class="p-4 font-bold text-slate-400 order-2 sm:order-1">BATAL</button>
+                    <button type="submit" class="flex-1 bg-indigo-600 text-white p-5 rounded-xl font-black shadow-lg uppercase text-xs order-1 sm:order-2">Simpan Produk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-page" class="fixed inset-0 bg-slate-900/80 hidden z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-5xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl max-h-[95vh] overflow-y-auto custom-scroll">
+            <h3 class="text-2xl font-black mb-8 italic text-slate-800">Editor Halaman CMS</h3>
+            <form id="form-page" class="space-y-4">
+                <input type="hidden" id="pg-id"><input type="hidden" id="pg-is-edit">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="text" id="pg-title" placeholder="Judul Halaman" class="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" required>
+                    <input type="text" id="pg-slug" placeholder="Slug (tanpa-spasi)" class="w-full p-4 bg-slate-50 border rounded-xl outline-none font-bold" required>
+                </div>
+                <textarea id="pg-content" rows="15" placeholder="Paste HTML di sini..." class="w-full p-6 bg-slate-50 border rounded-xl font-mono text-xs custom-scroll"></textarea>
+                <div class="flex justify-end gap-6 pt-6">
+                    <button type="button" onclick="closeModal('modal-page')" class="font-bold text-slate-400">BATAL</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-10 py-5 rounded-xl font-black shadow-lg text-xs uppercase">Publish Halaman</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = 'check-circle';
+            if (type === 'error') icon = 'x-circle';
+            if (type === 'warning') icon = 'alert-triangle';
+            toast.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons({ root: toast });
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function customConfirm(msg) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('modal-confirm');
+                const content = document.getElementById('modal-confirm-content');
+                document.getElementById('confirm-msg').innerText = msg;
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                void modal.offsetWidth;
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+
+                const btnOk = document.getElementById('btn-confirm-ok');
+                const btnCancel = document.getElementById('btn-confirm-cancel');
+
+                const cleanup = () => {
+                    modal.classList.add('opacity-0');
+                    content.classList.add('scale-95');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }, 300);
+                    btnOk.removeEventListener('click', onOk);
+                    btnCancel.removeEventListener('click', onCancel);
+                };
+
+                const onOk = () => { cleanup(); resolve(true); };
+                const onCancel = () => { cleanup(); resolve(false); };
+
+                btnOk.addEventListener('click', onOk);
+                btnCancel.addEventListener('click', onCancel);
+            });
+        }
+
+        // PERHATIAN: Hapus SCRIPT_URL yang ini karena sudah pakai config.js
+        // const SCRIPT_URL = 'https://script.google.com/.../exec'; 
+
+        const CACHE_KEY_ADMIN = 'melimpah_admin_data';
+        let IK_PUB = ''; let IK_END = ''; let cachedPages = []; let cachedProducts = [];
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sb.classList.toggle('open');
+            overlay.classList.toggle('open');
+        }
+
+        function togglePass() {
+            const p = document.getElementById('adm-pass'); const icon = document.getElementById('eye-icon');
+            if (p.type === 'password') { p.type = 'text'; icon.setAttribute('data-lucide', 'eye-off'); } 
+            else { p.type = 'password'; icon.setAttribute('data-lucide', 'eye'); }
+            lucide.createIcons();
+        }
+
+        document.getElementById('form-login').onsubmit = async (e) => { 
+            e.preventDefault(); 
+            const btn = document.getElementById('btn-login'); const oriText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto"></i>'; 
+            btn.disabled = true; lucide.createIcons();
+            try { 
+                if(typeof SCRIPT_URL === 'undefined') throw new Error("Config.js tidak terpanggil!");
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'admin_login', email: document.getElementById('adm-email').value, password: document.getElementById('adm-pass').value })}); 
+                const r = await res.json(); 
+                if(r.status === 'success') { 
+                    sessionStorage.setItem('adm_v10', 'true'); 
+                    sessionStorage.setItem('adm_name', r.data.nama); 
+                    showToast('Berhasil Login!', 'success');
+                    init(); 
+                } 
+                else { 
+                    showToast(r.message, 'error'); 
+                    btn.innerHTML = oriText; 
+                    btn.disabled = false; 
+                } 
+            } catch (err) { 
+                showToast('Error Koneksi!', 'error'); 
+                btn.innerHTML = oriText; 
+                btn.disabled = false; 
+            } 
+        };
+
+        function renderAdminUI(r) {
+            cachedPages = r.pages || []; cachedProducts = r.products || [];
+            document.getElementById('stat-orders').innerText = (r.stats.orders || 0) + ' Transaksi'; document.getElementById('stat-rev').innerText = 'Rp ' + Number(r.stats.rev || 0).toLocaleString('id-ID');
+            document.getElementById('list-orders').innerHTML = r.orders.map(o => `<tr class="hover:bg-slate-50 border-b border-slate-50 text-[11px] md:text-sm"><td class="p-4 md:p-6 font-mono font-bold text-indigo-600">${o[0]}</td><td class="p-4 md:p-6 font-bold text-slate-800">${o[2]}<br><span class="text-[9px] text-slate-400 font-medium">${o[1]}</span></td><td class="p-4 md:p-6 font-bold text-slate-600 truncate max-w-[150px]">${o[5]}</td><td class="p-4 md:p-6"><span class="px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase ${o[7]==='Lunas'?'bg-emerald-100 text-emerald-600':'bg-amber-100 text-amber-600'}">${o[7]}</span></td><td class="p-4 md:p-6">${o[7]==='Pending'?`<button onclick="setLunas('${o[0]}')" class="text-indigo-600 font-bold uppercase hover:underline">Aktifkan</button>`:'-'}</td></tr>`).join('');
+            document.getElementById('count-prod').innerText = cachedProducts.length; 
+            document.getElementById('list-products').innerHTML = [...cachedProducts].reverse().map(p => `<div class="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:-translate-y-1 transition-all"><div class="flex justify-between items-start mb-6"><span class="text-[9px] font-black bg-slate-50 text-slate-400 px-3 py-1 rounded-full uppercase">${p[0]}</span><span class="text-sm font-black text-slate-800 italic">Rp ${Number(p[4]).toLocaleString('id-ID')}</span></div><h4 class="font-bold text-slate-800 text-lg mb-2 leading-tight">${p[1]}</h4><p class="text-[10px] text-slate-400 line-clamp-2 mb-6 font-medium">${p[2]||'-'}</p><button onclick="editProd('${p[0]}')" class="w-full bg-slate-50 text-slate-500 hover:text-indigo-600 py-3 rounded-xl font-bold text-[10px] uppercase transition-colors">Edit Produk</button></div>`).join('');
+            document.getElementById('list-pages').innerHTML = cachedPages.map(p => `<tr class="hover:bg-slate-50 border-b border-slate-50 text-[11px] md:text-sm"><td class="p-4 md:p-6 font-black text-slate-800 truncate">${p[2]}</td><td class="p-4 md:p-6 font-mono text-indigo-600 hover:underline cursor-pointer truncate" onclick="window.open('p.html?s=${p[1]}', '_blank')">/p.html?s=${p[1]}</td><td class="p-4 md:p-6 text-right"><button onclick="editPage('${p[0]}')" class="bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors px-4 md:px-6 py-2 rounded-xl font-bold">Edit</button></td></tr>`).join('');
+            
+            // Injeksi data branding ke form Admin
+            document.getElementById('set-site-name').value = r.settings.site_name || ''; 
+            document.getElementById('set-site-tagline').value = r.settings.site_tagline || ''; 
+            document.getElementById('set-logo').value = r.settings.site_logo || ''; 
+            document.getElementById('set-favicon').value = r.settings.site_favicon || ''; 
+            document.getElementById('set-wa').value = r.settings.wa_admin || ''; 
+            document.getElementById('set-fonnte').value = r.settings.fonnte_token || ''; 
+            document.getElementById('set-ik-pub').value = IK_PUB = r.settings.ik_public_key || ''; 
+            document.getElementById('set-ik-end').value = IK_END = r.settings.ik_endpoint || ''; 
+            document.getElementById('set-cf-zone').value = r.settings.cf_zone_id || ''; 
+            document.getElementById('set-cf-token').value = r.settings.cf_api_token || '';
+            lucide.createIcons();
+        }
+
+        async function init() {
+            if(!sessionStorage.getItem('adm_v10')) return;
+            document.getElementById('login-overlay').style.display = 'none'; 
+            document.getElementById('admin-main').style.display = 'flex'; 
+            document.getElementById('admin-name').innerText = sessionStorage.getItem('adm_name');
+            
+            const cachedDataStr = localStorage.getItem(CACHE_KEY_ADMIN); 
+            const syncLabel = document.getElementById('sync-status');
+            
+            if (cachedDataStr) { 
+                renderAdminUI(JSON.parse(cachedDataStr)); 
+                syncLabel.classList.remove('hidden');
+            }
+            
+            try { 
+                if(typeof SCRIPT_URL === 'undefined') return;
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_admin_data' }) }); 
+                const r = await res.json(); 
+                if(r.status === 'success') { 
+                    const freshDataStr = JSON.stringify(r);
+                    if(cachedDataStr !== freshDataStr) {
+                        localStorage.setItem(CACHE_KEY_ADMIN, freshDataStr); 
+                        renderAdminUI(r); 
+                    }
+                    syncLabel.classList.add('hidden');
+                } 
+            } catch (err) { console.error(err); }
+        }
+
+        function forceSync() { 
+            localStorage.removeItem(CACHE_KEY_ADMIN); 
+            document.getElementById('sync-status').classList.remove('hidden'); 
+            document.getElementById('sync-status').innerText = 'Refreshing...'; 
+            init(); 
+        }
+
+        async function triggerPurgeCache() {
+            const btn = document.getElementById('btn-purge'); const oriText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> PROSES...'; btn.disabled = true; lucide.createIcons();
+            try { 
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'purge_cf_cache' }) }); 
+                const r = await res.json(); 
+                showToast(r.message, r.status === 'success' ? 'success' : 'error'); 
+            } catch (e) { 
+                showToast('Gagal menghubungi server GAS.', 'error'); 
+            }
+            btn.innerHTML = oriText; btn.disabled = false; lucide.createIcons();
+        }
+
+        function editProd(id) { 
+            const p = cachedProducts.find(x => x[0] === id); 
+            if(!p) return; 
+            document.getElementById('p-id').value = p[0]; 
+            document.getElementById('p-title').value = p[1]; 
+            document.getElementById('p-desc').value = p[2]; 
+            document.getElementById('p-url').value = p[3]; 
+            document.getElementById('p-harga').value = p[4]; 
+            document.getElementById('p-lp').value = p[6] || ""; 
+            document.getElementById('p-is-edit').value = 'true'; 
+            document.getElementById('modal-prod').classList.remove('hidden'); 
+        }
+        function editPage(id) { const p = cachedPages.find(x => x[0] === id); if(!p) return; document.getElementById('pg-id').value = p[0]; document.getElementById('pg-slug').value = p[1]; document.getElementById('pg-title').value = p[2]; document.getElementById('pg-content').value = p[3]; document.getElementById('pg-is-edit').value = 'true'; document.getElementById('modal-page').classList.remove('hidden'); }
+        
+        async function uploadMedia() { 
+            const fileIn = document.getElementById('media-file'); const btn = document.getElementById('btn-upload'); 
+            if(!fileIn.files[0]) return showToast('Pilih file yang ingin diupload!', 'warning'); 
+            btn.disabled=true; btn.innerText='IZIN...'; 
+            try { 
+                const authRes = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_ik_auth' }) }); 
+                const auth = await authRes.json(); 
+                if(auth.status !== 'success') throw new Error(auth.message); 
+                btn.innerText = 'UPLOADING...'; 
+                const fd = new FormData(); fd.append('file', fileIn.files[0]); fd.append('fileName', fileIn.files[0].name); fd.append('publicKey', IK_PUB); fd.append('signature', auth.signature); fd.append('expire', auth.expire); fd.append('token', auth.token); 
+                const ikRes = await fetch('https://upload.imagekit.io/api/v1/files/upload', { method: 'POST', body: fd }); 
+                const r = await ikRes.json(); 
+                if(r.url) { 
+                    document.getElementById('media-res-box').classList.remove('hidden'); 
+                    document.getElementById('media-url-res').value = r.url; 
+                    showToast('Upload Sukses!', 'success'); 
+                } 
+            } catch (err) { 
+                showToast('Upload Gagal: ' + err.message, 'error'); 
+            } 
+            btn.disabled=false; btn.innerText='UPLOAD'; 
+        }
+
+        function copyLink() { const c = document.getElementById('media-url-res'); c.select(); document.execCommand('copy'); showToast('Berhasil dicopy!', 'success'); }
+        
+        function switchTab(t) { 
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); 
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); 
+            document.getElementById('tab-'+t).classList.add('active'); 
+            document.getElementById('nav-'+t).classList.add('active'); 
+            document.getElementById('tab-title').innerText = t === 'orders' ? 'Dashboard' : t.charAt(0).toUpperCase() + t.slice(1); 
+            lucide.createIcons();
+            if(window.innerWidth < 768) toggleSidebar(); 
+        }
+
+        async function setLunas(id) { 
+            const isConfirmed = await customConfirm('Aktifkan akses materi (Lunas) untuk user ini?');
+            if(!isConfirmed) return; 
+            
+            showToast('Memproses aktivasi...', 'warning');
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update_order_status', id }) }); 
+                showToast('Akses produk berhasil diaktifkan!', 'success');
+                forceSync(); 
+            } catch(e) {
+                showToast('Gagal menghubungi server.', 'error');
+            }
+        }
+
+        function openProdModal() { document.getElementById('form-prod').reset(); document.getElementById('p-is-edit').value = 'false'; document.getElementById('modal-prod').classList.remove('hidden'); }
+        function openPageModal() { document.getElementById('form-page').reset(); document.getElementById('pg-is-edit').value = 'false'; document.getElementById('modal-page').classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function logout() { sessionStorage.clear(); localStorage.removeItem(CACHE_KEY_ADMIN); location.reload(); }
+
+        // FUNGSI HELPER UNTUK MENGIRIM FORM DENGAN ERROR HANDLING YANG SOLID
+        async function submitFormToGAS(formId, payload, successMsg, modalIdToClose = null) {
+            const form = document.getElementById(formId);
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline-block align-middle mr-2"></i>PROSES...';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch(e) { throw new Error('Format respon server tidak valid.'); }
+
+                if(data.status === 'success') {
+                    if(modalIdToClose) closeModal(modalIdToClose);
+                    showToast(successMsg, 'success');
+                    forceSync();
+                } else {
+                    showToast(data.message || 'Gagal diproses oleh server', 'error');
+                }
+            } catch(err) {
+                showToast('Koneksi terputus: ' + err.message, 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('form-prod').onsubmit = async (e) => { 
+            e.preventDefault(); 
+            const p = { 
+                action: 'save_product', 
+                id: document.getElementById('p-id').value, 
+                title: document.getElementById('p-title').value, 
+                desc: document.getElementById('p-desc').value, 
+                url: document.getElementById('p-url').value, 
+                harga: document.getElementById('p-harga').value, 
+                lp_url: document.getElementById('p-lp').value, 
+                status: 'Active', 
+                is_edit: document.getElementById('p-is-edit').value === 'true' 
+            }; 
+            await submitFormToGAS('form-prod', p, 'Produk berhasil disimpan!', 'modal-prod');
+        };
+
+        document.getElementById('form-page').onsubmit = async (e) => { 
+            e.preventDefault(); 
+            const p = { 
+                action: 'save_page', 
+                id: document.getElementById('pg-id').value, 
+                slug: document.getElementById('pg-slug').value, 
+                title: document.getElementById('pg-title').value, 
+                content: document.getElementById('pg-content').value, 
+                is_edit: document.getElementById('pg-is-edit').value === 'true' 
+            }; 
+            await submitFormToGAS('form-page', p, 'Halaman CMS tersimpan!', 'modal-page');
+        };
+
+        document.getElementById('form-branding').onsubmit = async (e) => { 
+            e.preventDefault(); 
+            const p = { 
+                site_name: document.getElementById('set-site-name').value, 
+                site_tagline: document.getElementById('set-site-tagline').value, 
+                site_logo: document.getElementById('set-logo').value, 
+                site_favicon: document.getElementById('set-favicon').value 
+            }; 
+            await submitFormToGAS('form-branding', { action: 'update_settings', payload: p }, 'Branding Tersimpan!');
+        };
+
+        document.getElementById('form-sys').onsubmit = async (e) => { 
+            e.preventDefault(); 
+            const p = { wa_admin: document.getElementById('set-wa').value, fonnte_token: document.getElementById('set-fonnte').value, ik_public_key: document.getElementById('set-ik-pub').value, ik_endpoint: document.getElementById('set-ik-end').value }; 
+            await submitFormToGAS('form-sys', { action: 'update_settings', payload: p }, 'API Sistem Updated!');
+        };
+
+        document.getElementById('form-cf').onsubmit = async (e) => { 
+            e.preventDefault(); 
+            const p = { cf_zone_id: document.getElementById('set-cf-zone').value, cf_api_token: document.getElementById('set-cf-token').value }; 
+            await submitFormToGAS('form-cf', { action: 'update_settings', payload: p }, 'Kunci Cloudflare Disimpan!');
+        };
+
+        window.onload = () => { lucide.createIcons(); if(sessionStorage.getItem('adm_v10')) init(); };
+    </script>
+</body>
+</html>
