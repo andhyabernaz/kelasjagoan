@@ -676,14 +676,16 @@ function savePage(d) {
            }
 
           s.getRange(i + 1, 1, 1, 4).setValues([[d.id, slug, d.title, d.content]]);
+          // Update Meta Pixel Columns (Col 8, 9, 10)
+          s.getRange(i + 1, 8, 1, 3).setValues([[d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || ""]]);
           return { status: "success" };
         }
       }
       return { status: "error", message: "ID Halaman tidak ditemukan" };
     } else {
       const newId = "PG-" + Date.now();
-      // Tambahkan Owner ID di kolom ke-7 (index 6)
-      s.appendRow([newId, slug, d.title, d.content, "Active", toISODate_(), ownerId]);
+      // Tambahkan Owner ID di kolom ke-7 (index 6) + Meta Pixel (7,8,9)
+      s.appendRow([newId, slug, d.title, d.content, "Active", toISODate_(), ownerId, d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || ""]);
       return { status: "success" };
     }
   } catch (e) {

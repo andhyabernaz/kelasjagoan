@@ -522,6 +522,28 @@
                         <input type="text" id="pg-slug" placeholder="slug-halaman" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required>
                     </div>
                 </div>
+
+                <!-- Meta Pixel Config -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="activity" class="w-4 h-4 text-indigo-500"></i>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Konfigurasi Meta Pixel (Opsional)</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Pixel ID</label>
+                            <input type="text" id="pg-pixel-id" placeholder="Ex: 123456789" class="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-xs font-mono transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Access Token</label>
+                            <input type="text" id="pg-pixel-token" placeholder="Ex: EAA..." class="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-xs font-mono transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Test Event Code</label>
+                            <input type="text" id="pg-pixel-test" placeholder="Ex: TEST1234" class="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-xs font-mono transition-all">
+                        </div>
+                    </div>
+                </div>
                 <div>
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Konten HTML</label>
                     <textarea id="pg-content" rows="15" placeholder="<!-- Paste kode HTML Landing Page di sini -->" class="w-full p-6 bg-slate-900 text-emerald-400 border border-slate-800 rounded-xl font-mono text-xs custom-scroll focus:ring-2 focus:ring-indigo-500/50 outline-none"></textarea>
@@ -764,21 +786,52 @@
 
         function downloadPageHTML(id = null) {
             let content = '', filename = 'landing-page.html';
+            let pixelId = '', pixelToken = '', pixelTest = '';
             
             if (id) {
                 // Dari List Pages
                 const p = cachedPages.find(x => x[0] === id);
                 if (!p) return showToast('Data halaman tidak ditemukan', 'error');
                 content = p[3];
+                pixelId = p[7];
                 filename = (p[1] || 'landing-page') + '.html';
             } else {
                 // Dari Modal Editor
                 content = document.getElementById('pg-content').value;
+                pixelId = document.getElementById('pg-pixel-id').value;
                 const slug = document.getElementById('pg-slug').value;
                 filename = (slug || 'landing-page') + '.html';
             }
 
             if (!content) return showToast('Konten HTML kosong!', 'warning');
+            
+            // Inject Meta Pixel
+            if (pixelId) {
+                const pixelScript = `
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+`;
+                if (content.includes('</head>')) {
+                    content = content.replace('</head>', pixelScript + '</head>');
+                } else {
+                    content = pixelScript + content;
+                }
+            }
 
             const blob = new Blob([content], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
@@ -804,7 +857,22 @@
             document.getElementById('p-is-edit').value = 'true'; 
             document.getElementById('modal-prod').classList.remove('hidden'); 
         }
-        function editPage(id) { const p = cachedPages.find(x => x[0] === id); if(!p) return; document.getElementById('pg-id').value = p[0]; document.getElementById('pg-slug').value = p[1]; document.getElementById('pg-title').value = p[2]; document.getElementById('pg-content').value = p[3]; document.getElementById('pg-is-edit').value = 'true'; document.getElementById('modal-page').classList.remove('hidden'); }
+        function editPage(id) { 
+            const p = cachedPages.find(x => x[0] === id); 
+            if(!p) return; 
+            document.getElementById('pg-id').value = p[0]; 
+            document.getElementById('pg-slug').value = p[1]; 
+            document.getElementById('pg-title').value = p[2]; 
+            document.getElementById('pg-content').value = p[3];
+            
+            // Meta Pixel
+            document.getElementById('pg-pixel-id').value = p[7] || '';
+            document.getElementById('pg-pixel-token').value = p[8] || '';
+            document.getElementById('pg-pixel-test').value = p[9] || '';
+            
+            document.getElementById('pg-is-edit').value = 'true'; 
+            document.getElementById('modal-page').classList.remove('hidden'); 
+        }
         
         async function uploadMedia() { 
             const fileIn = document.getElementById('media-file'); const btn = document.getElementById('btn-upload'); 
@@ -919,7 +987,10 @@
                 id: document.getElementById('pg-id').value, 
                 slug: document.getElementById('pg-slug').value, 
                 title: document.getElementById('pg-title').value, 
-                content: document.getElementById('pg-content').value, 
+                content: document.getElementById('pg-content').value,
+                meta_pixel_id: document.getElementById('pg-pixel-id').value,
+                meta_pixel_token: document.getElementById('pg-pixel-token').value,
+                meta_pixel_test_event: document.getElementById('pg-pixel-test').value,
                 is_edit: document.getElementById('pg-is-edit').value === 'true' 
             }; 
             await submitFormToGAS('form-page', p, 'Halaman CMS tersimpan!', 'modal-page');
