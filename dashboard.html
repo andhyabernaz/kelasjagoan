@@ -2,7 +2,6 @@
 <html lang="id">
 <head>
     <script src="config.js?v=2026"></script>
-
     <script>
         (function() {
             const CACHE_KEY = 'melimpah_global_settings';
@@ -10,7 +9,6 @@
             window.waAdminGlobal = '';
 
             function applyGlobalSettings(data) {
-                // Eksekusi Cepat (Favicon & Title Browser)
                 if(data.site_favicon) {
                     let link = document.querySelector("link[rel~='icon']");
                     if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
@@ -18,24 +16,17 @@
                 }
                 if(data.wa_admin) window.waAdminGlobal = data.wa_admin;
                 
-                // Auto Replace Text di Title Browser
                 if(data.site_name) {
                     document.title = document.title.replace(/Melimpah Digital/gi, data.site_name).replace(/Melimpah/gi, data.site_name);
                 }
 
-                // Eksekusi DOM HTML
                 const updateDomElements = () => {
-                    // Injeksi Komisi
                     if(data.affiliate_commission) {
                         const commEl = document.getElementById('display-comm-rate');
                         if(commEl) commEl.innerText = data.affiliate_commission + '%';
                     }
-                    
-                    // INJEKSI NAMA WEB
                     if(data.site_name) {
-                        document.querySelectorAll('.dyn-site-name').forEach(el => {
-                            el.innerText = data.site_name;
-                        });
+                        document.querySelectorAll('.dyn-site-name').forEach(el => { el.innerText = data.site_name; });
                     }
                 };
 
@@ -51,9 +42,7 @@
             try { cached = JSON.parse(cachedStr); } catch(e){}
             const now = Date.now();
 
-            if (cached && cached.data) {
-                applyGlobalSettings(cached.data);
-            }
+            if (cached && cached.data) { applyGlobalSettings(cached.data); }
 
             if (!cached || !cached.time || (now - cached.time > CACHE_AGE)) {
                 if(typeof SCRIPT_URL === 'undefined') { console.error("SCRIPT_URL belum didefinisikan di config.js!"); return; }
@@ -68,7 +57,6 @@
             }
         })();
     </script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Member Area - Melimpah Digital</title>
@@ -76,14 +64,29 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; background-color: #f8fafc; }
         
+        /* Smooth Transitions */
+        .transition-all-300 { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* Sidebar & Navigation */
+        .nav-item { transition: all 0.2s ease-in-out; color: #64748b; }
+        .nav-item:hover { background-color: #f1f5f9; color: #1e293b; }
+        .nav-item.active { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
+        
+        /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        #sidebar { transition: transform 0.3s ease-in-out; }
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Mobile Sidebar */
+        #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         @media (max-width: 768px) {
             #sidebar { transform: translateX(-100%); position: fixed; z-index: 50; }
             #sidebar.open { transform: translateX(0); }
@@ -91,182 +94,226 @@
             #sidebar-overlay.open { display: block; }
         }
 
-        /* CUSTOM TOAST CSS */
-        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
-        .toast { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); max-width: 350px; line-height: 1.4; }
+        /* Toast Notifications */
+        #toast-container { position: fixed; bottom: 32px; right: 32px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+        .toast { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 16px; font-size: 14px; font-weight: 600; color: white; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); max-width: 400px; backdrop-filter: blur(8px); }
         .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background-color: #10b981; }
-        .toast.error { background-color: #ef4444; }
-        .toast.warning { background-color: #f59e0b; }
+        .toast.success { background-color: rgba(16, 185, 129, 0.95); }
+        .toast.error { background-color: rgba(239, 68, 68, 0.95); }
+        .toast.warning { background-color: rgba(245, 158, 11, 0.95); }
 
-        /* SKELETON LOADING */
-        .skeleton { background: #e2e8f0; background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%); border-radius: 5px; background-size: 200% 100%; animation: 1.5s shine linear infinite; }
+        /* Skeleton Loading */
+        .skeleton { background: #e2e8f0; background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%); border-radius: 8px; background-size: 200% 100%; animation: 1.5s shine linear infinite; }
         @keyframes shine { to { background-position-x: -200%; } }
     </style>
 </head>
-<body class="bg-[#f8f9fa] text-slate-800 flex h-screen w-screen">
+<body class="bg-slate-50 text-slate-800 antialiased relative h-screen w-screen overflow-hidden">
 
     <div id="toast-container"></div>
 
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 z-40 md:hidden transition-opacity"></div>
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 z-40 md:hidden backdrop-blur-sm transition-opacity"></div>
 
-    <aside id="sidebar" class="w-72 bg-slate-900 text-slate-400 flex flex-col h-full flex-shrink-0 shadow-2xl relative z-50">
-        <div class="p-8 text-2xl font-black text-white tracking-tighter border-b border-slate-800 flex justify-between items-center">
-            <span class="flex items-center gap-3">
-                <i data-lucide="layers" class="w-8 h-8 text-indigo-500"></i> <span class="dyn-site-name uppercase">MELIMPAH</span>
-            </span>
-            <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-white transition-colors">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-72 bg-white border-r border-slate-200 flex flex-col h-full flex-shrink-0 z-50 shadow-sm">
+        <div class="h-20 flex items-center px-8 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <span class="font-bold text-xl text-slate-800 tracking-tight dyn-site-name">MELIMPAH</span>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
         </div>
-        <nav class="p-6 space-y-2 flex-1 overflow-y-auto custom-scroll">
-            <a href="#" class="w-full flex items-center gap-3 p-4 font-bold text-sm bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/20">
-                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard Member
+
+        <nav class="p-4 space-y-1 flex-1 overflow-y-auto custom-scroll">
+            <div class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2">Menu Utama</div>
+            <a href="#" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
             </a>
-            <a href="#" onclick="openPasswordModal(); return false;" class="w-full flex items-center gap-3 p-4 font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
+            
+            <div class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Akun</div>
+            <button onclick="openPasswordModal()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left">
                 <i data-lucide="key-round" class="w-5 h-5"></i> Ganti Password
-            </a>
+            </button>
         </nav>
-        <div class="p-6 border-t border-slate-800">
-            <button onclick="logout()" class="w-full flex items-center gap-3 p-4 font-bold text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-colors">
-                <i data-lucide="log-out" class="w-5 h-5"></i> Keluar Akun
+
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 py-3 rounded-xl font-semibold text-xs transition-all">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
             </button>
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-[#f8fafc]">
         
-        <header class="bg-white/90 backdrop-blur-md border-b border-slate-100 py-4 px-6 md:px-10 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+        <header class="sticky top-0 bg-white/80 backdrop-blur-md z-30 px-6 md:px-10 py-5 flex justify-between items-center border-b border-slate-200/50">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-500 bg-slate-50 rounded-lg hover:bg-slate-100 border border-slate-200">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
-                </button>
-                <h2 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Member Area</h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right hidden sm:block">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Selamat Datang,</p>
-                    <p id="header-name" class="text-sm font-black text-slate-800 leading-none">Member</p>
+                <button onclick="toggleSidebar()" class="md:hidden p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-600"><i data-lucide="menu" class="w-6 h-6"></i></button>
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Member Area</h2>
+                    <p class="text-xs text-slate-400 font-medium hidden sm:block">Welcome back, <span id="header-name" class="text-indigo-600 font-bold">User</span>!</p>
                 </div>
-                <div class="w-10 h-10 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-black">
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:block text-right mr-2">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status Member</p>
+                    <p class="text-xs font-bold text-emerald-600 flex items-center justify-end gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Active</p>
+                </div>
+                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold shadow-sm border border-indigo-100">
                     <i data-lucide="user" class="w-5 h-5"></i>
                 </div>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll pb-20">
-
-            <div id="dashboard-content" class="fade-in space-y-10 max-w-6xl mx-auto">
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll pb-24">
+            <div id="dashboard-content" class="fade-in-up space-y-10 max-w-7xl mx-auto">
                 
+                <!-- AFFILIATE BANNER -->
                 <section>
-                    <div class="bg-gradient-to-br from-slate-900 to-indigo-900 rounded-2xl p-5 md:p-6 text-white shadow-2xl shadow-indigo-900/20 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                        <i data-lucide="megaphone" class="absolute -bottom-6 -right-6 w-32 h-32 text-white/5 -rotate-12"></i>
+                    <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-[2rem] p-8 md:p-10 text-white shadow-xl shadow-indigo-900/10 relative overflow-hidden border border-slate-800/50">
+                        <!-- Decorative Elements -->
+                        <div class="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                        <div class="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
                         
-                        <div class="relative z-10">
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
-                                    <i data-lucide="gem" class="w-3 h-3"></i> Program Kemitraan
-                                </span>
-                            </div>
-                            <h2 class="text-xl md:text-2xl font-black tracking-tight mb-2">Sebarkan & Hasilkan Cuan!</h2>
-                            <p class="text-indigo-200 text-xs mb-5 max-w-xl leading-relaxed">Gunakan link afiliasi unik di bawah ini. Dapatkan komisi sebesar <span id="display-comm-rate" class="font-black text-white bg-indigo-500/50 px-2 py-0.5 rounded border border-indigo-400">...</span> dari setiap penjualan!</p>
-                            
-                            <div class="bg-black/30 border border-white/10 p-3 rounded-xl flex flex-col md:flex-row items-center gap-3 backdrop-blur-sm max-w-2xl mb-5">
-                                <div class="flex-1 w-full flex items-center gap-3 bg-white/5 px-4 py-2.5 rounded-lg overflow-x-auto custom-scroll">
-                                    <i data-lucide="link" class="w-4 h-4 text-indigo-300 flex-shrink-0"></i>
-                                    <code id="aff-link-display" class="text-xs font-mono text-indigo-100 whitespace-nowrap">Memuat link...</code>
+                        <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <div class="flex items-center gap-2 mb-4">
+                                    <span class="bg-white/10 border border-white/10 text-indigo-100 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 backdrop-blur-md">
+                                        <i data-lucide="sparkles" class="w-3 h-3"></i> Program Partner
+                                    </span>
                                 </div>
-                                <button onclick="copyAffLink()" class="w-full md:w-auto bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
-                                    Salin Link <i data-lucide="copy" class="w-4 h-4"></i>
-                                </button>
+                                <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Sebarkan & <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-emerald-300">Hasilkan Cuan!</span></h2>
+                                <p class="text-slate-400 text-sm mb-8 max-w-md leading-relaxed">Dapatkan komisi sebesar <span id="display-comm-rate" class="font-bold text-white bg-indigo-600 px-2 py-0.5 rounded text-xs">...</span> dari setiap penjualan produk melalui link referensi unik Anda.</p>
+                                
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <div class="flex-1 bg-slate-950/50 border border-white/10 px-5 py-3 rounded-xl flex items-center gap-3 backdrop-blur-sm group cursor-pointer hover:border-indigo-500/50 transition-all" onclick="copyAffLink()">
+                                        <i data-lucide="link" class="w-4 h-4 text-indigo-400 group-hover:text-white transition-colors"></i>
+                                        <code id="aff-link-display" class="text-xs font-mono text-slate-300 whitespace-nowrap overflow-hidden text-ellipsis">Memuat link...</code>
+                                        <i data-lucide="copy" class="w-4 h-4 text-slate-500 ml-auto group-hover:text-white transition-colors"></i>
+                                    </div>
+                                    <button onclick="copyAffLink()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wide transition-all shadow-lg shadow-indigo-600/20 whitespace-nowrap hover:shadow-indigo-600/40">
+                                        Salin Link
+                                    </button>
+                                </div>
                             </div>
 
-                            <div class="pt-4 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-2xl">
-                                <div>
-                                    <p class="text-[9px] font-bold text-indigo-300 uppercase tracking-widest mb-1">Saldo Komisi Anda</p>
-                                    <div class="text-2xl md:text-3xl font-black tracking-tighter text-emerald-400" id="display-saldo-komisi">
-                                        <div class="h-8 w-32 skeleton rounded mt-1"></div>
+                            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl relative overflow-hidden group">
+                                <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div class="relative z-10">
+                                    <div class="flex justify-between items-start mb-6">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Komisi</p>
+                                            <div class="text-3xl font-bold tracking-tight text-emerald-400" id="display-saldo-komisi">
+                                                <div class="h-8 w-32 skeleton rounded bg-white/10"></div>
+                                            </div>
+                                        </div>
+                                        <div class="p-3 bg-emerald-500/20 rounded-2xl text-emerald-400 ring-1 ring-emerald-500/20">
+                                            <i data-lucide="wallet" class="w-6 h-6"></i>
+                                        </div>
                                     </div>
+                                    <button onclick="requestWithdrawal()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 group">
+                                        Ajukan Penarikan <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                                    </button>
+                                    <p class="text-center text-[10px] text-slate-500 mt-4">Minimal penarikan Rp 50.000 via WhatsApp Admin</p>
                                 </div>
-                                <button onclick="requestWithdrawal()" class="w-full md:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:-translate-y-1 transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 group">
-                                    Cairkan Komisi <i data-lucide="wallet" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
                 </section>
 
+                <!-- OWNED MATERIALS -->
                 <section>
-                    <div class="flex items-center gap-3 mb-5 border-b border-slate-200 pb-3">
-                        <i data-lucide="unlock" class="w-5 h-5 text-emerald-500"></i>
-                        <h2 class="text-lg font-black text-slate-800 uppercase tracking-widest">Materi Saya</h2>
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                                <i data-lucide="library" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">Materi Saya</h2>
+                                <p class="text-xs text-slate-400 font-medium">Produk yang telah Anda beli</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="list-owned" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-full">
-                            <div class="h-4 w-16 skeleton rounded-full mb-5"></div>
+                        <!-- Skeleton Item -->
+                        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm h-full flex flex-col">
+                            <div class="h-4 w-16 skeleton rounded-full mb-6"></div>
                             <div class="h-6 w-3/4 skeleton rounded mb-4"></div>
                             <div class="h-3 w-full skeleton rounded mb-2"></div>
                             <div class="h-3 w-2/3 skeleton rounded mb-8"></div>
-                            <div class="h-10 w-full skeleton rounded-xl mt-4"></div>
+                            <div class="mt-auto h-12 w-full skeleton rounded-xl"></div>
                         </div>
                     </div>
                 </section>
 
+                <!-- PRODUCT CATALOG -->
                 <section>
-                    <div class="flex items-center gap-3 mb-5 border-b border-slate-200 pb-3">
-                        <i data-lucide="shopping-bag" class="w-5 h-5 text-indigo-600"></i>
-                        <h2 class="text-lg font-black text-slate-800 uppercase tracking-widest">Katalog Produk</h2>
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center shadow-sm">
+                                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">Katalog Produk</h2>
+                                <p class="text-xs text-slate-400 font-medium">Jelajahi produk lainnya</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="list-available" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                         <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-full">
-                            <div class="h-4 w-20 skeleton rounded-full mb-5"></div>
+                         <!-- Skeleton Item -->
+                         <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm h-full flex flex-col">
+                            <div class="h-4 w-20 skeleton rounded-full mb-6"></div>
                             <div class="h-6 w-3/4 skeleton rounded mb-4"></div>
                             <div class="h-3 w-full skeleton rounded mb-2"></div>
                             <div class="h-3 w-2/3 skeleton rounded mb-8"></div>
                             <div class="h-5 w-1/3 skeleton rounded mb-6"></div>
-                            <div class="h-10 w-full skeleton rounded-xl"></div>
+                            <div class="mt-auto h-12 w-full skeleton rounded-xl"></div>
                         </div>
                     </div>
                 </section>
 
             </div>
             
-            <div class="mt-16 text-center border-t border-slate-200 pt-8 max-w-6xl mx-auto">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">&copy; 2026 <span class="dyn-site-name">Melimpah Digital</span></p>
+            <div class="mt-20 text-center border-t border-slate-200 pt-8 max-w-2xl mx-auto">
+                <p class="text-xs font-semibold text-slate-400">&copy; 2026 <span class="dyn-site-name text-slate-600">Melimpah Digital</span>. All rights reserved.</p>
             </div>
 
         </div>
     </main>
 
-    <div id="password-modal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center transition-opacity opacity-0 px-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 md:p-8 transform transition-transform scale-95" id="password-modal-content">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-black text-slate-900 tracking-tight">Ganti Password</h3>
-                <button onclick="closePasswordModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-100 p-2 rounded-full hover:bg-red-50">
+    <!-- PASSWORD MODAL -->
+    <div id="password-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm bg-slate-900/40 transition-opacity opacity-0">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 transform transition-transform scale-95 border border-white/40" id="password-modal-content">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900">Ganti Password</h3>
+                    <p class="text-xs text-slate-500 mt-1">Amankan akun anda dengan password kuat.</p>
+                </div>
+                <button onclick="closePasswordModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-50 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
-            <form onsubmit="prosesGantiPassword(event)" class="space-y-4">
+            <form onsubmit="prosesGantiPassword(event)" class="space-y-5">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Password Lama</label>
-                    <input type="password" id="input-password-lama" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Password Lama</label>
+                    <input type="password" id="input-password-lama" required class="w-full p-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm" placeholder="••••••••">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Password Baru</label>
-                    <input type="password" id="input-password-baru" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Password Baru</label>
+                    <input type="password" id="input-password-baru" required class="w-full p-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm" placeholder="••••••••">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Konfirmasi Password Baru</label>
-                    <input type="password" id="input-konfirmasi-password" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Konfirmasi Password</label>
+                    <input type="password" id="input-konfirmasi-password" required class="w-full p-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm" placeholder="••••••••">
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closePasswordModal()" class="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors">Batal</button>
-                    <button type="submit" class="flex-1 bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
-                        Simpan <i data-lucide="save" class="w-4 h-4"></i>
+                    <button type="button" onclick="closePasswordModal()" class="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors">Batal</button>
+                    <button type="submit" id="btn-save-pass" class="flex-1 bg-indigo-600 text-white hover:bg-indigo-700 py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                        Simpan Password
                     </button>
                 </div>
             </form>
@@ -287,11 +334,10 @@
             setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
+                setTimeout(() => toast.remove(), 400);
             }, 3000);
         }
 
-        // SCRIPT_URL ditarik dari config.js
         const DASHBOARD_CACHE_KEY = 'melimpah_dashboard_data';
 
         function toggleSidebar() {
@@ -305,15 +351,12 @@
             const modal = document.getElementById('password-modal');
             const content = document.getElementById('password-modal-content');
             modal.classList.remove('hidden');
+            modal.classList.add('flex');
             void modal.offsetWidth;
             modal.classList.remove('opacity-0');
             content.classList.remove('scale-95');
             const sb = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if(sb.classList.contains('open')) {
-                sb.classList.remove('open');
-                overlay.classList.remove('open');
-            }
+            if(sb.classList.contains('open')) toggleSidebar();
         }
 
         function closePasswordModal() {
@@ -323,6 +366,7 @@
             content.classList.add('scale-95');
             setTimeout(() => {
                 modal.classList.add('hidden');
+                modal.classList.remove('flex');
                 document.getElementById('input-password-lama').value = '';
                 document.getElementById('input-password-baru').value = '';
                 document.getElementById('input-konfirmasi-password').value = '';
@@ -337,6 +381,7 @@
         if (userNama) { document.getElementById('header-name').innerText = userNama.split(' ')[0]; }
 
         const domainWeb = window.location.origin + "/index.html"; 
+        // Fallback jika tidak ada userId
         const affLink = `${domainWeb}?ref=${userId || 'GUEST'}`;
         
         window.addEventListener('DOMContentLoaded', () => {
@@ -345,14 +390,16 @@
 
         function copyAffLink() {
             navigator.clipboard.writeText(affLink);
-            showToast("Link Affiliate berhasil disalin! Silakan sebar untuk mendapatkan komisi.", "success");
+            showToast("Link Affiliate berhasil disalin!", "success");
         }
 
         function copyPromoLink(productId) {
             const currentUserId = sessionStorage.getItem('user_id') || 'GUEST';
-            let currentUrl = window.location.href;
-            let dir = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-            const finalAffLink = `${dir}/checkout.html?id=${productId}&ref=${currentUserId}`;
+            // Coba deteksi base URL
+            let baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+            if(baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+            
+            const finalAffLink = `${baseUrl}/checkout.html?id=${productId}&ref=${currentUserId}`;
             
             navigator.clipboard.writeText(finalAffLink);
             showToast("Link promosi produk berhasil disalin!", "success");
@@ -361,19 +408,18 @@
         function requestWithdrawal() {
             const saldoEl = document.getElementById('display-saldo-komisi').innerText;
             if(saldoEl === 'Rp 0' || saldoEl.includes('...')) {
-                showToast("Maaf, Anda belum memiliki saldo komisi yang bisa dicairkan.", "warning");
+                showToast("Saldo belum mencukupi untuk penarikan.", "warning");
                 return;
             }
             if(!window.waAdminGlobal) {
-                showToast("Sistem belum memuat kontak Admin, coba muat ulang halaman.", "error");
+                showToast("Sedang memuat kontak Admin, coba sesaat lagi.", "warning");
                 return;
             }
             
-            // Ambil nama web dinamis untuk wa message
             const siteNameElements = document.querySelectorAll('.dyn-site-name');
             const dSiteName = siteNameElements.length > 0 ? siteNameElements[0].innerText : "Admin";
 
-            const waMsg = `Halo ${dSiteName}! 👋\n\nSaya ingin mengajukan pencairan komisi afiliasi saya.\n\n👤 *Nama:* ${userNama}\n🆔 *ID Member:* ${userId}\n💰 *Total Saldo:* ${saldoEl}\n\nMohon diinformasikan prosedur selanjutnya. Terima kasih!`;
+            const waMsg = `Halo ${dSiteName}! 👋\n\nSaya ingin mengajukan pencairan komisi afiliasi.\n\n👤 *Nama:* ${userNama}\n🆔 *ID Member:* ${userId}\n💰 *Total Saldo:* ${saldoEl}\n\nMohon diproses. Terima kasih!`;
             window.open(`https://wa.me/${window.waAdminGlobal}?text=${encodeURIComponent(waMsg)}`, '_blank');
         }
 
@@ -382,28 +428,23 @@
             const oldPassword = document.getElementById('input-password-lama').value;
             const newPassword = document.getElementById('input-password-baru').value;
             const confirmPassword = document.getElementById('input-konfirmasi-password').value;
-            const currentUserEmail = sessionStorage.getItem('user_email');
-            
-            if (!currentUserEmail) {
-                showToast("Sesi telah habis, silakan login kembali.", "error");
-                setTimeout(() => window.location.href = 'login.html', 1500);
-                return;
-            }
-            if (!oldPassword || !newPassword || !confirmPassword) {
-                showToast("Semua kolom password wajib diisi!", "warning");
-                return;
-            }
+            const btn = document.getElementById('btn-save-pass');
+            const oriText = btn.innerHTML;
+
             if (newPassword !== confirmPassword) {
-                showToast("Password baru dan konfirmasi tidak cocok!", "error");
+                showToast("Konfirmasi password tidak cocok!", "error");
                 return;
             }
 
-            showToast("Memproses penggantian password...", "warning");
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Loading...';
+            lucide.createIcons();
+
             try {
-                if(typeof SCRIPT_URL === 'undefined') throw new Error("Config.js tidak ditemukan.");
+                if(typeof SCRIPT_URL === 'undefined') throw new Error("Config.js error");
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'change_password', email: currentUserEmail, old_password: oldPassword, new_password: newPassword })
+                    body: JSON.stringify({ action: 'change_password', email: userEmail, old_password: oldPassword, new_password: newPassword })
                 });
                 const r = await res.json();
                 if (r.status === 'success') {
@@ -413,7 +454,11 @@
                     showToast(r.message || "Gagal mengubah password.", "error");
                 }
             } catch (error) {
-                showToast("Terjadi kesalahan koneksi ke server.", "error");
+                showToast("Koneksi gagal. Coba lagi nanti.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oriText;
+                lucide.createIcons();
             }
         }
 
@@ -425,26 +470,39 @@
             const ownedContainer = document.getElementById('list-owned');
             if (r.owned && r.owned.length > 0) {
                 ownedContainer.innerHTML = r.owned.map(p => `
-                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full group fade-in">
-                        <div class="mb-5"><span class="bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex inline-flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Aktif</span></div>
-                        <h3 class="text-xl font-black text-slate-900 mb-2 leading-tight group-hover:text-indigo-600 transition-colors">${p.title}</h3>
-                        <p class="text-xs text-slate-500 mb-8 flex-1 line-clamp-2 leading-relaxed">${p.desc}</p>
-                        <div class="pt-5 border-t border-slate-100 flex gap-2">
-                            <a href="akses.html?id=${p.id}" class="flex-1 bg-slate-900 text-white px-4 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-colors flex justify-center items-center gap-2">
-                                Materi <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </a>
-                            <button onclick="copyPromoLink('${p.id}')" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-4 py-3.5 rounded-xl transition-colors" title="Salin Link Affiliate Produk Ini">
-                                <i data-lucide="share-2" class="w-4 h-4"></i>
-                            </button>
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full group fade-in-up relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <i data-lucide="award" class="w-24 h-24 text-indigo-600 transform rotate-12 translate-x-4 -translate-y-4"></i>
+                        </div>
+                        <div class="relative z-10 flex flex-col h-full">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-xs shadow-sm">
+                                    <i data-lucide="package" class="w-5 h-5"></i>
+                                </div>
+                                <span class="bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="check-circle-2" class="w-3 h-3"></i> Aktif
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-800 mb-2 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">${p.title}</h3>
+                            <p class="text-xs text-slate-500 mb-6 flex-1 line-clamp-3 leading-relaxed">${p.desc}</p>
+                            
+                            <div class="flex gap-2 mt-auto">
+                                <a href="akses.html?id=${p.id}" class="flex-1 bg-slate-900 text-white px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-indigo-600 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-slate-200">
+                                    Akses Materi <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                                <button onclick="copyPromoLink('${p.id}')" class="bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 px-4 py-3 rounded-xl transition-colors border border-slate-200 shadow-sm" title="Salin Link Affiliate">
+                                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `).join('');
             } else {
                 ownedContainer.innerHTML = `
-                    <div class="col-span-full bg-slate-50 border-2 border-dashed border-slate-200 p-10 rounded-3xl text-center fade-in">
-                        <div class="w-12 h-12 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="folder-open" class="w-6 h-6"></i></div>
+                    <div class="col-span-full bg-slate-50 border-2 border-dashed border-slate-200 p-10 rounded-[2rem] text-center fade-in-up">
+                        <div class="w-16 h-16 bg-white border border-slate-100 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm"><i data-lucide="folder-open" class="w-8 h-8"></i></div>
                         <p class="text-slate-500 font-bold text-sm">Belum ada materi aktif.</p>
-                        <p class="text-slate-400 text-xs mt-1">Jika Anda sudah membayar, mohon tunggu konfirmasi admin.</p>
+                        <p class="text-slate-400 text-xs mt-1">Produk yang Anda beli akan muncul di sini setelah dikonfirmasi.</p>
                     </div>
                 `;
             }
@@ -454,24 +512,34 @@
                 availableContainer.innerHTML = r.available.reverse().map(p => {
                     const targetLink = (p.lp_url && p.lp_url !== "") ? p.lp_url : `checkout.html?id=${p.id}`;
                     return `
-                    <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full fade-in">
-                        <div class="mb-5"><span class="bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest inline-flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3"></i> Tersedia</span></div>
-                        <h3 class="text-lg font-black text-slate-900 mb-2 leading-tight">${p.title}</h3>
-                        <p class="text-xs text-slate-500 mb-8 flex-1 line-clamp-2 leading-relaxed">${p.desc}</p>
-                        <span class="text-lg font-black text-slate-900 italic mb-4">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
-                        <div class="flex gap-2 pt-4 border-t border-slate-50">
-                            <a href="${targetLink}" class="flex-1 bg-indigo-600 text-white px-4 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-center hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 flex items-center justify-center">
-                                Beli Sekarang
-                            </a>
-                            <button onclick="copyPromoLink('${p.id}')" class="bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white px-4 py-3.5 rounded-xl transition-colors" title="Salin Link Affiliate Produk Ini">
-                                <i data-lucide="share-2" class="w-4 h-4"></i>
-                            </button>
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full fade-in-up group relative overflow-hidden">
+                        <div class="relative z-10 flex flex-col h-full">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="tag" class="w-3 h-3"></i> Tersedia
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-800 mb-2 leading-tight line-clamp-2">${p.title}</h3>
+                            <p class="text-xs text-slate-500 mb-4 flex-1 line-clamp-2 leading-relaxed">${p.desc}</p>
+                            <div class="mb-6 pt-4 border-t border-slate-50">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Harga</p>
+                                <span class="text-xl font-bold text-slate-800">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
+                            </div>
+                            
+                            <div class="flex gap-2 mt-auto">
+                                <a href="${targetLink}" class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wide text-center hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                                    Beli Sekarang
+                                </a>
+                                <button onclick="copyPromoLink('${p.id}')" class="bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 px-4 py-3 rounded-xl transition-colors border border-slate-200 shadow-sm" title="Salin Link Affiliate">
+                                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     `;
                 }).join('');
             } else {
-                availableContainer.innerHTML = `<p class="col-span-full text-slate-400 font-bold text-center text-xs uppercase tracking-widest py-10 fade-in">Belum ada produk tambahan.</p>`;
+                availableContainer.innerHTML = `<p class="col-span-full text-slate-400 font-bold text-center text-xs uppercase tracking-widest py-10 fade-in-up">Belum ada produk tambahan.</p>`;
             }
 
             lucide.createIcons();
@@ -503,7 +571,7 @@
                     if(!cachedData) showToast('Gagal memuat data: ' + r.message, 'error'); 
                 }
             } catch (err) { 
-                if(!cachedData) showToast('Terjadi kesalahan koneksi saat memuat Dashboard.', 'error'); 
+                if(!cachedData) showToast('Koneksi internet bermasalah.', 'error'); 
             }
         }
 
