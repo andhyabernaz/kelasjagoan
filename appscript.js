@@ -118,6 +118,7 @@ function doPost(e) {
       case "get_ik_auth": return jsonRes(getImageKitAuth(cfg));
       case "purge_cf_cache": return jsonRes(purgeCFCache(cfg));
       case "change_password": return jsonRes(changeUserPassword(data));
+      case "update_profile": return jsonRes(updateUserProfile(data));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar" });
     }
   } catch (err) {
@@ -783,6 +784,76 @@ function changeUserPassword(d) {
       }
     }
     return { status: "error", message: "Email pengguna tidak ditemukan." };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   UPDATE PROFILE (NAMA & EMAIL)
+========================= */
+function updateUserProfile(d) {
+  try {
+    const s = mustSheet_("Users");
+    const r = s.getDataRange().getValues();
+    const currentEmail = String(d.email).trim().toLowerCase();
+    const newName = String(d.new_name).trim();
+    const newEmail = String(d.new_email).trim().toLowerCase();
+    const password = String(d.password); // Verify password before updating sensitive info
+
+    if (!newName || !newEmail) return { status: "error", message: "Nama dan Email baru wajib diisi." };
+
+    let userRowIndex = -1;
+    let currentData = null;
+
+    // 1. Verify User & Check duplicate email if changed
+    for (let i = 1; i < r.length; i++) {
+      const rowEmail = String(r[i][1]).trim().toLowerCase();
+      
+      // Find current user
+      if (rowEmail === currentEmail) {
+        if (String(r[i][2]) !== password) return { status: "error", message: "Password salah!" };
+        userRowIndex = i + 1;
+        currentData = r[i];
+      } 
+      
+      // Check if new email is already taken by SOMEONE ELSE
+      if (rowEmail === newEmail && rowEmail !== currentEmail) {
+        return { status: "error", message: "Email baru sudah digunakan oleh pengguna lain." };
+      }
+    }
+
+    if (userRowIndex === -1) return { status: "error", message: "Pengguna tidak ditemukan." };
+
+    // 2. Update Users Sheet
+    // Col 2: Email (index 1), Col 4: Nama (index 3)
+    // Note: getRange(row, col) is 1-based.
+    s.getRange(userRowIndex, 2).setValue(newEmail);
+    s.getRange(userRowIndex, 4).setValue(newName);
+
+    // 3. Update Orders Sheet if email changed (Consistency)
+    if (newEmail !== currentEmail) {
+      const oS = mustSheet_("Orders");
+      const oR = oS.getDataRange().getValues();
+      for (let j = 1; j < oR.length; j++) {
+        if (String(oR[j][1]).toLowerCase() === currentEmail) {
+          oS.getRange(j + 1, 2).setValue(newEmail);
+          oS.getRange(j + 1, 3).setValue(newName); // Update name as well
+        }
+      }
+    } else {
+       // Just update name in Orders if email same
+      const oS = mustSheet_("Orders");
+      const oR = oS.getDataRange().getValues();
+      for (let j = 1; j < oR.length; j++) {
+        if (String(oR[j][1]).toLowerCase() === currentEmail) {
+          oS.getRange(j + 1, 3).setValue(newName);
+        }
+      }
+    }
+
+    return { status: "success", message: "Profil berhasil diperbarui", new_email: newEmail, new_name: newName };
+
   } catch (e) {
     return { status: "error", message: e.toString() };
   }

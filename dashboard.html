@@ -139,7 +139,10 @@
             </button>
             
             <div class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Akun</div>
-            <button onclick="openPasswordModal()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left">
+            <button onclick="openProfileModal()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left hover:bg-slate-100 transition-colors text-slate-600">
+                <i data-lucide="user-cog" class="w-5 h-5"></i> Edit Profile
+            </button>
+            <button onclick="openPasswordModal()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left hover:bg-slate-100 transition-colors text-slate-600">
                 <i data-lucide="key-round" class="w-5 h-5"></i> Ganti Password
             </button>
         </nav>
@@ -399,41 +402,7 @@
         </div>
     </main>
 
-    <!-- PASSWORD MODAL -->
-    <div id="password-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm bg-slate-900/40 transition-opacity opacity-0">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 transform transition-transform scale-95 border border-white/40" id="password-modal-content">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h3 class="text-xl font-bold text-slate-900">Ganti Password</h3>
-                    <p class="text-xs text-slate-500 mt-1">Amankan akun anda dengan password kuat.</p>
-                </div>
-                <button onclick="closePasswordModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-50 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <form onsubmit="prosesGantiPassword(event)" class="space-y-5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Password Lama</label>
-                    <input type="password" id="input-password-lama" required class="w-full p-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm" placeholder="••••••••">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Password Baru</label>
-                    <input type="password" id="input-password-baru" required class="w-full p-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm" placeholder="••••••••">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Konfirmasi Password</label>
-                    <input type="password" id="input-konfirmasi-password" required class="w-full p-4 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm" placeholder="••••••••">
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closePasswordModal()" class="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors">Batal</button>
-                    <button type="submit" id="btn-save-pass" class="flex-1 bg-indigo-600 text-white hover:bg-indigo-700 py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
-                        Simpan Password
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+
 
     <script>
         function showToast(message, type = 'success') {
@@ -488,8 +457,8 @@
             }, 300);
         }
 
-        const userEmail = sessionStorage.getItem('user_email');
-        const userNama = sessionStorage.getItem('user_nama');
+        let userEmail = sessionStorage.getItem('user_email');
+        let userNama = sessionStorage.getItem('user_nama');
         const userId = sessionStorage.getItem('user_id'); 
         
         if (!userEmail) { window.location.href = 'login.html'; }
@@ -966,9 +935,162 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             loadMyPages(); // Load user's landing pages
         };
     </script>
-    <!-- MODAL PAGE -->
-    <div id="modal-page" class="fixed inset-0 bg-slate-900/70 hidden z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-5xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl max-h-[95vh] overflow-y-auto custom-scroll relative">
+    <!-- Password Modal -->
+    <div id="modal-password" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closePasswordModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden fade-in-up">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-lg text-slate-800">Ganti Password</h3>
+                    <button onclick="closePasswordModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Password Lama</label>
+                        <input type="password" id="input-password-lama" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="Masukkan password saat ini">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Password Baru</label>
+                        <input type="password" id="input-password-baru" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="Minimal 6 karakter">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Konfirmasi Password</label>
+                        <input type="password" id="input-konfirmasi-password" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="Ulangi password baru">
+                    </div>
+                </div>
+                <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+                    <button onclick="closePasswordModal()" class="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-colors">Batal</button>
+                    <button onclick="prosesGantiPassword()" id="btn-save-pass" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
+                        Simpan Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="modal-profile" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeProfileModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden fade-in-up">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-lg text-slate-800">Edit Profile</h3>
+                    <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="p-4 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-100 flex gap-3">
+                        <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0 text-amber-500"></i>
+                        <p>Mengubah email akan mengubah data login Anda. Pastikan email yang Anda masukkan aktif dan valid.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Lengkap</label>
+                        <input type="text" id="profile-name" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="Nama Anda">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Login</label>
+                        <input type="email" id="profile-email" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="email@contoh.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Konfirmasi Password</label>
+                        <input type="password" id="profile-password" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="Masukkan password untuk konfirmasi">
+                    </div>
+                </div>
+                <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+                    <button onclick="closeProfileModal()" class="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-colors">Batal</button>
+                    <button onclick="saveProfile()" id="btn-save-profile" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPasswordModal() {
+            document.getElementById('modal-password').classList.remove('hidden');
+        }
+        function closePasswordModal() {
+            document.getElementById('modal-password').classList.add('hidden');
+        }
+
+        function openProfileModal() {
+            document.getElementById('profile-name').value = sessionStorage.getItem('user_nama') || '';
+            document.getElementById('profile-email').value = sessionStorage.getItem('user_email') || '';
+            document.getElementById('modal-profile').classList.remove('hidden');
+        }
+        function closeProfileModal() {
+            document.getElementById('modal-profile').classList.add('hidden');
+        }
+
+        async function saveProfile() {
+            const newName = document.getElementById('profile-name').value;
+            const newEmail = document.getElementById('profile-email').value;
+            const password = document.getElementById('profile-password').value;
+            const btn = document.getElementById('btn-save-profile');
+            const oriText = btn.innerHTML;
+
+            if(!newName || !newEmail || !password) {
+                showToast("Semua kolom wajib diisi!", "warning");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Loading...';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'update_profile', 
+                        email: userEmail, // Current email to identify user
+                        new_name: newName,
+                        new_email: newEmail,
+                        password: password
+                    })
+                });
+                const r = await res.json();
+                
+                if(r.status === 'success') {
+                    showToast("Profil berhasil diperbarui!", "success");
+                    
+                    // Clear Cache for OLD email first
+                    localStorage.removeItem(DASHBOARD_CACHE_KEY + '_' + userEmail);
+
+                    // Update Global Vars
+                    userNama = r.new_name;
+                    userEmail = r.new_email;
+                    
+                    // Update Session Storage
+                    sessionStorage.setItem('user_nama', r.new_name);
+                    sessionStorage.setItem('user_email', r.new_email);
+                    
+                    // Update UI
+                    document.getElementById('display-nama').innerText = userNama;
+                    document.getElementById('display-email').innerText = userEmail;
+                    
+                    closeProfileModal();
+                } else {
+                    showToast(r.message || "Gagal memperbarui profil", "error");
+                }
+            } catch(e) {
+                showToast("Terjadi kesalahan koneksi", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oriText;
+                lucide.createIcons();
+            }
+        }
+    </script>
+
+    <!-- Page Editor Modal -->
+    <div id="modal-page" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('modal-page')"></div>
+        <div class="bg-white w-full max-w-5xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl max-h-[95vh] overflow-y-auto custom-scroll relative z-10 fade-in-up">
             <button onclick="closeModal('modal-page')" class="absolute top-6 right-6 p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
 
             <h3 class="text-2xl font-bold mb-2 text-slate-800">Editor Halaman</h3>
