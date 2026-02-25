@@ -490,15 +490,25 @@
             }
         }
 
-        function downloadPageHTML(slug) {
+        function downloadPageHTML(slug, productId) {
             if (!window.cachedPages) return showToast('Data halaman belum dimuat', 'warning');
             
             const page = window.cachedPages.find(x => x[1] === slug);
             
             if (!page) return showToast('Konten halaman tidak ditemukan', 'error');
             
-            const content = page[3];
+            let content = page[3];
             if (!content) return showToast('Konten HTML kosong!', 'warning');
+
+            // Replace LINK_AFF with actual affiliate checkout link
+            if (productId) {
+                const userId = sessionStorage.getItem('user_id') || 'GUEST';
+                let baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+                if(baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+                
+                const checkoutUrl = `${baseUrl}/checkout.html?id=${productId}&ref=${userId}`;
+                content = content.replace(/LINK_AFF/g, checkoutUrl);
+            }
             
             const filename = (slug || 'landing-page') + '.html';
             const blob = new Blob([content], { type: 'text/html' });
@@ -510,7 +520,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('HTML berhasil diunduh!', 'success');
+            showToast('HTML berhasil diunduh dengan link affiliate!', 'success');
         }
 
         function renderDashboardUI(r) {
@@ -619,7 +629,7 @@
                              const hasPage = window.cachedPages.find(x => x[1] === slug);
                              if (hasPage) {
                                  downloadBtn = `
-                                <button onclick="downloadPageHTML('${slug}')" class="bg-white text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 px-3 py-2.5 rounded-xl transition-colors border border-slate-200 shadow-sm" title="Unduh HTML Landing Page">
+                                <button onclick="downloadPageHTML('${slug}', '${p.id}')" class="bg-white text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 px-3 py-2.5 rounded-xl transition-colors border border-slate-200 shadow-sm" title="Unduh HTML Landing Page">
                                     <i data-lucide="download" class="w-4 h-4"></i>
                                 </button>`;
                              }
