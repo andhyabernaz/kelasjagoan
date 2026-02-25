@@ -95,8 +95,10 @@
     
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .bg-grid { background-image: radial-gradient(circle at 1px 1px, rgba(15,23,42,.04) 1px, transparent 0); background-size: 20px 20px; }
+        .glass-card { backdrop-filter: saturate(180%) blur(8px); }
+        .brand-badge { box-shadow: 0 8px 20px -8px rgba(79,70,229,.35); }
 
-        /* CUSTOM TOAST CSS */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
         .toast { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); max-width: 350px; line-height: 1.4; }
         .toast.show { opacity: 1; transform: translateY(0); }
@@ -105,32 +107,58 @@
         .toast.warning { background-color: #f59e0b; }
     </style>
 </head>
-<body class="bg-[#f8f9fa] min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen bg-slate-50 bg-grid relative overflow-hidden">
 
     <div id="toast-container"></div>
 
-    <div class="bg-white p-10 rounded-[2.5rem] w-full max-w-md shadow-lg border border-slate-100">
-        <h1 class="text-2xl font-black text-slate-800 mb-2 text-center uppercase tracking-tighter">Login <span class="dyn-site-name">Member Area</span></h1>
-        <p class="text-center text-slate-400 text-xs mb-8">Silakan masuk untuk akses dashboard.</p>
-        
-        <form id="form-login" class="space-y-4">
-            <div>
-                <label class="ml-2 text-[10px] font-bold text-slate-400 uppercase">Email</label>
-                <input type="email" id="email" class="w-full p-4 bg-[#ebf2ff] rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-400/50 transition-all font-bold text-slate-700" placeholder="nama@email.com" required>
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <main class="min-h-screen flex items-center justify-center p-6">
+      <div class="w-full max-w-xl">
+        <div class="mb-6 flex items-center justify-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center brand-badge">
+                <i data-lucide="layers" class="w-5 h-5"></i>
             </div>
             <div>
-                <label class="ml-2 text-[10px] font-bold text-slate-400 uppercase">Password</label>
-                <input type="password" id="pass" class="w-full p-4 bg-[#ebf2ff] rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-400/50 transition-all font-bold text-slate-700" placeholder="••••••••" required>
+                <p class="text-xs font-bold tracking-widest text-slate-400 uppercase">Selamat Datang</p>
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-800 dyn-site-name">Member Area</h1>
             </div>
-            <button type="submit" id="btn-login" class="w-full bg-[#007bff] text-white p-5 rounded-2xl font-black shadow-xl shadow-blue-200 hover:scale-[1.02] transition-all uppercase text-xs tracking-widest">Otentikasi Akun</button>
-        </form>
-        <div class="mt-6 text-center">
-            <a href="index.html" class="text-slate-400 text-xs font-bold hover:text-indigo-600">&larr; Kembali ke Beranda</a>
         </div>
-    </div>
+
+        <div class="bg-white/90 glass-card p-8 md:p-10 rounded-[2rem] shadow-xl border border-slate-100">
+            <p class="text-center text-slate-500 text-sm mb-8">Masuk untuk mengakses dashboard.</p>
+        
+            <form id="form-login" class="space-y-5">
+                <div class="space-y-2">
+                    <label class="ml-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Email</label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="email" id="email" class="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-800" placeholder="nama@email.com" required>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="ml-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="password" id="pass" class="w-full pl-10 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-800" placeholder="••••••••" required>
+                        <button type="button" id="toggle-pass" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-2">
+                            <i data-lucide="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                    Otentikasi Akun
+                </button>
+            </form>
+            <div class="mt-6 text-center">
+                <a href="index.html" class="text-slate-400 text-xs font-bold hover:text-indigo-600">&larr; Kembali ke Beranda</a>
+            </div>
+        </div>
+      </div>
+    </main>
 
     <script>
-        // --- FUNGSI CUSTOM TOAST NOTIFICATION ---
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -151,13 +179,23 @@
             }, 3000);
         }
 
-        // SCRIPT_URL sudah ditarik dari config.js
+        document.addEventListener('DOMContentLoaded', ()=>{ lucide.createIcons(); });
+        const toggleBtn = document.getElementById('toggle-pass');
+        if(toggleBtn){
+            toggleBtn.addEventListener('click', ()=>{
+                const input = document.getElementById('pass');
+                const isPw = input.getAttribute('type') === 'password';
+                input.setAttribute('type', isPw ? 'text' : 'password');
+                toggleBtn.innerHTML = isPw ? '<i data-lucide="eye-off" class="w-5 h-5"></i>' : '<i data-lucide="eye" class="w-5 h-5"></i>';
+                lucide.createIcons({ root: toggleBtn });
+            });
+        }
 
         document.getElementById('form-login').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-login'); 
-            const originalText = btn.innerText;
-            btn.innerText = 'MEMVERIFIKASI...'; btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Memverifikasi...'; btn.disabled = true; lucide.createIcons({ root: btn });
 
             try {
                 if(typeof SCRIPT_URL === 'undefined') throw new Error("Config.js tidak terpanggil!");
@@ -167,24 +205,22 @@
                 const r = await res.json();
                 
                 if(r.status === 'success') {
-                    // Simpan data sesi penting
                     sessionStorage.setItem('user_email', r.data.email);
                     sessionStorage.setItem('user_nama', r.data.nama);
                     sessionStorage.setItem('user_id', r.data.id); 
                     
                     showToast("Login Berhasil! Mengalihkan...", "success");
                     
-                    // Beri jeda 1 detik agar toast terbaca sebelum pindah halaman
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1000);
                 } else { 
                     showToast(r.message, "error"); 
-                    btn.innerText = originalText; btn.disabled = false;
+                    btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons({ root: btn });
                 }
             } catch (err) { 
                 showToast('Gagal koneksi server!', 'error'); 
-                btn.innerText = originalText; btn.disabled = false; 
+                btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons({ root: btn });
             }
         };
     </script>
