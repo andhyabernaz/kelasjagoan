@@ -902,6 +902,8 @@
             e.preventDefault(); 
             const p = { contact_email: document.getElementById('set-email').value, wa_admin: document.getElementById('set-wa').value, fonnte_token: document.getElementById('set-fonnte').value, ik_public_key: document.getElementById('set-ik-pub').value, ik_endpoint: document.getElementById('set-ik-end').value }; 
             await submitFormToGAS('form-sys', { action: 'update_settings', payload: p }, 'API Sistem Updated!');
+            // Clear local cache agar perubahan langsung terlihat di halaman depan
+            localStorage.removeItem('melimpah_global_settings');
         };
 
         document.getElementById('form-cf').onsubmit = async (e) => { 
