@@ -1,0 +1,851 @@
+/**
+ * SPOTMEMBER MASTER BACKEND v12.1 (SaaS White-Label Edition) - 2026
+ * Hardened Edition (Crash-proof + Settings Cache + Safer Parsing)
+ * - Fix: doPost null-safety (e.postData)
+ * - Fix: Settings cache per request (lebih cepat & stabil)
+ * - Fix: Sheet guard (biar gak crash kalau sheet hilang)
+ * - Fix: Harga sanitizer (anti "10.000" jadi NaN)
+ * - Fix: Webhook in-memory status update (anti double-match)
+ * - Improve: Cloudflare error message lebih informatif
+ * - New: get_pages action for dashboard HTML download
+ */
+
+const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+/* =========================
+   UTIL / HARDENING HELPERS
+========================= */
+function jsonRes(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+function doGet() {
+  return ContentService.createTextOutput("System API Ready!")
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
+function getSettingsMap_() {
+  const s = ss.getSheetByName("Settings");
+  if (!s) return {};
+  const d = s.getDataRange().getValues();
+  const map = {};
+  for (let i = 1; i < d.length; i++) {
+    const k = String(d[i][0] || "").trim();
+    if (k) map[k] = d[i][1];
+  }
+  return map;
+}
+function getCfgFrom_(cfg, name) {
+  return (cfg && cfg[name] !== undefined && cfg[name] !== null) ? cfg[name] : "";
+}
+function mustSheet_(name) {
+  const sh = ss.getSheetByName(name);
+  if (!sh) throw new Error(`Sheet "${name}" tidak ditemukan`);
+  return sh;
+}
+function toNumberSafe_(v) {
+  const n = Number(String(v ?? "").replace(/[^\d]/g, ""));
+  return isFinite(n) ? n : 0;
+}
+function toISODate_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+}
+
+/* =========================
+   LEGACY getCfg (kept)
+   (masih bisa dipakai, tapi lebih lambat)
+========================= */
+function getCfg(name) {
+  try {
+    const s = ss.getSheetByName("Settings");
+    const d = s.getDataRange().getValues();
+    for (let i = 1; i < d.length; i++) {
+      if (String(d[i][0]).trim() === name) return d[i][1];
+    }
+  } catch (e) { return ""; }
+  return "";
+}
+
+/* =========================
+   WEBHOOK ENTRYPOINT
+========================= */
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonRes({ status: "error", message: "No data" });
+    }
+
+    const cfg = getSettingsMap_();
+
+    const payloadString = e.postData.contents;
+    const data = JSON.parse(payloadString);
+
+    // ====================================================================
+    // 🚀 RADAR MOOTA: DETEKSI WEBHOOK MASUK + URL SECURITY TOKEN
+    // ====================================================================
+    if (Array.isArray(data) && data.length > 0 && data[0].amount !== undefined) {
+      const mootaToken = String(getCfgFrom_(cfg, "moota_token") || "").trim();
+
+      if (mootaToken) {
+        const urlToken = (e.parameter && e.parameter.token) ? String(e.parameter.token).trim() : "";
+        if (!urlToken || urlToken !== mootaToken) {
+          return ContentService.createTextOutput("ERROR: Akses Ditolak! Token tidak valid.")
+            .setMimeType(ContentService.MimeType.TEXT);
+        }
+      }
+
+      return handleMootaWebhook(data, cfg);
+    }
+
+    // ====================================================================
+    // JIKA BUKAN DARI MOOTA, JALANKAN PERINTAH DARI WEBSITE (FRONTEND)
+    // ====================================================================
+    const action = data.action;
+    switch (action) {
+      case "get_global_settings": return jsonRes(getGlobalSettings(cfg));
+      case "get_product": return jsonRes(getProductDetail(data, cfg));
+      case "get_products": return jsonRes(getProducts(data, cfg));
+      case "create_order": return jsonRes(createOrder(data, cfg));
+      case "update_order_status": return jsonRes(updateOrderStatus(data, cfg));
+      case "login": return jsonRes(loginUser(data));
+      case "get_page_content": return jsonRes(getPageContent(data));
+      case "get_pages": return jsonRes(getAllPages(data));
+      case "admin_login": return jsonRes(adminLogin(data));
+      case "get_admin_data": return jsonRes(getAdminData(cfg));
+      case "save_product": return jsonRes(saveProduct(data));
+      case "save_page": return jsonRes(savePage(data));
+      case "update_settings": return jsonRes(updateSettings(data));
+      case "get_ik_auth": return jsonRes(getImageKitAuth(cfg));
+      case "purge_cf_cache": return jsonRes(purgeCFCache(cfg));
+      case "change_password": return jsonRes(changeUserPassword(data));
+      default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar" });
+    }
+  } catch (err) {
+    return jsonRes({ status: "error", message: err.toString() });
+  }
+}
+
+/* =========================
+   WHITE-LABEL GLOBAL SETTINGS
+========================= */
+function getGlobalSettings(cfg) {
+  cfg = cfg || getSettingsMap_();
+  return {
+    status: "success",
+    data: {
+      site_name: getCfgFrom_(cfg, "site_name") || "Sistem Premium",
+      site_tagline: getCfgFrom_(cfg, "site_tagline") || "Platform Produk Digital Terbaik",
+      site_favicon: getCfgFrom_(cfg, "site_favicon") || "",
+      site_logo: getCfgFrom_(cfg, "site_logo") || "",
+      contact_email: getCfgFrom_(cfg, "contact_email") || "",
+      affiliate_commission: getCfgFrom_(cfg, "affiliate_commission") || "0",
+      wa_admin: getCfgFrom_(cfg, "wa_admin") || ""
+    }
+  };
+}
+
+/* =========================
+   CLOUDFLARE PURGE
+========================= */
+function purgeCFCache(cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+    const zoneId = String(getCfgFrom_(cfg, "cf_zone_id") || "").trim();
+    const token = String(getCfgFrom_(cfg, "cf_api_token") || "").trim();
+    if (!zoneId || !token) return { status: "error", message: "Konfigurasi Cloudflare belum disetting!" };
+
+    const options = {
+      method: "post",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      payload: JSON.stringify({ purge_everything: true }),
+      muteHttpExceptions: true
+    };
+
+    const res = UrlFetchApp.fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`, options);
+    const body = JSON.parse(res.getContentText());
+
+    if (body && body.success) {
+      return { status: "success", message: "🚀 Cache Berhasil Dibersihkan!" };
+    }
+    const msg = (body && body.errors && body.errors.length) ? JSON.stringify(body.errors) : "Cloudflare Error";
+    return { status: "error", message: msg };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   NOTIFICATIONS
+========================= */
+function sendWA(target, message, cfg) {
+  if (!target) return;
+  cfg = cfg || getSettingsMap_();
+  const token = getCfgFrom_(cfg, "fonnte_token") || getCfg("fonnte_token");
+  if (!token) return;
+  try {
+    UrlFetchApp.fetch("https://api.fonnte.com/send", {
+      method: "post",
+      headers: { "Authorization": token },
+      payload: { target: target, message: message },
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    Logger.log(e);
+  }
+}
+
+function sendEmail(target, subject, body, cfg) {
+  if (!target) return;
+  cfg = cfg || getSettingsMap_();
+  try {
+    const senderName = getCfgFrom_(cfg, "site_name") || "Admin Sistem";
+    MailApp.sendEmail({ to: target, subject: subject, htmlBody: body, name: senderName });
+  } catch (e) {
+    Logger.log(e);
+  }
+}
+
+/* =========================
+   CREATE ORDER (ANGKA UNIK + WHITE-LABEL + AFFILIATE)
+========================= */
+function createOrder(d, cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+
+    const oS = mustSheet_("Orders");
+    const uS = mustSheet_("Users");
+
+    const inv = "INV-" + Math.floor(10000 + Math.random() * 90000);
+    const email = String(d.email || "").trim().toLowerCase();
+    if (!email) return { status: "error", message: "Email wajib diisi" };
+
+    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    const siteUrl = String(getCfgFrom_(cfg, "site_url") || "").trim();
+    const loginUrl = siteUrl ? (siteUrl + "/login.html") : "Link Login Belum Disetting";
+
+    const bankName = getCfgFrom_(cfg, "bank_name") || "-";
+    const bankNorek = getCfgFrom_(cfg, "bank_norek") || "-";
+    const bankOwner = getCfgFrom_(cfg, "bank_owner") || "-";
+
+    const aff = (d.affiliate && String(d.affiliate).trim() !== "") ? String(d.affiliate).trim() : "-";
+
+    const hargaDasar = toNumberSafe_(d.harga);
+    if (hargaDasar <= 0) return { status: "error", message: "Harga tidak valid" };
+
+    let komisiNominal = 0;
+    const persentaseKomisi = Number(getCfgFrom_(cfg, "affiliate_commission")) || 0;
+    if (aff !== "-") komisiNominal = (hargaDasar * persentaseKomisi) / 100;
+
+    const kodeUnik = Math.floor(Math.random() * 900) + 100;
+    const hargaTotalUnik = hargaDasar + kodeUnik;
+
+    // Cek atau Buat User Baru
+    let isNew = true;
+    let pass = Math.random().toString(36).slice(-6);
+
+    const uData = uS.getDataRange().getValues();
+    for (let j = 1; j < uData.length; j++) {
+      if (String(uData[j][1]).toLowerCase() === email) {
+        isNew = false;
+        pass = String(uData[j][2]);
+        break;
+      }
+    }
+    if (isNew) {
+      uS.appendRow(["USR-" + Date.now(), email, pass, d.nama, "member", toISODate_()]);
+    }
+
+    // Simpan order (struktur kolom sama dengan script lu)
+    oS.appendRow([
+      inv,
+      email,
+      d.nama,
+      d.whatsapp,
+      d.id_produk,
+      d.nama_produk,
+      hargaTotalUnik,
+      "Pending",
+      toISODate_(),
+      aff,
+      komisiNominal
+    ]);
+
+    // --> NOTIFIKASI PEMBELI (WHATSAPP)
+    const waBuyerText =
+`Halo *${d.nama}*, salam hangat dari ${siteName}! 👋
+
+Terima kasih telah melakukan pemesanan. Berikut rincian pesanan Anda:
+
+📦 *Produk:* ${d.nama_produk}
+🔖 *Invoice:* #${inv}
+💰 *Total Tagihan:* Rp ${Number(hargaTotalUnik).toLocaleString('id-ID')}
+
+⚠️ _(Penting: Transfer *TEPAT* hingga 3 digit terakhir agar sistem dapat memvalidasi otomatis)_
+
+Silakan selesaikan pembayaran ke rekening berikut:
+
+🏦 *Bank:* ${bankName}
+💳 *No. Rek:* ${bankNorek}
+👤 *A.n:* ${bankOwner}
+
+*(Mohon kirimkan bukti transfer ke sini agar pesanan segera diproses)*
+
+---
+
+🔐 *INFORMASI AKUN MEMBER*
+🌐 *Link Login:* ${loginUrl}
+✉️ *Email:* ${email}
+🔑 *Password:* ${pass}
+
+*(Akses materi otomatis terbuka di akun ini setelah pembayaran divalidasi)*.
+
+Jika ada pertanyaan, silakan balas pesan ini. Terima kasih! 🙏`;
+    sendWA(d.whatsapp, waBuyerText, cfg);
+
+    // --> NOTIFIKASI PEMBELI (EMAIL) (template asli lu)
+    const emailBuyerHtml = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155; border: 1px solid #e2e8f0; border-radius: 10px;">
+        <h2 style="color: #4f46e5; margin-bottom: 5px;">Menunggu Pembayaran Anda ⏳</h2>
+        <p style="font-size: 16px; margin-top: 0;">Halo <b>${d.nama}</b>,</p>
+        <p>Terima kasih atas pesanan Anda di <b>${siteName}</b>. Berikut adalah detail tagihan yang harus dibayarkan:</p>
+
+        <div style="background-color: #f8fafc; padding: 15px 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4f46e5;">
+            <p style="margin: 0 0 5px 0;"><b>Produk:</b> ${d.nama_produk}</p>
+            <p style="margin: 0 0 5px 0;"><b>Invoice:</b> #${inv}</p>
+            <p style="margin: 0; font-size: 20px; color: #0f172a;"><b>Total Tagihan: Rp ${Number(hargaTotalUnik).toLocaleString('id-ID')}</b></p>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #ef4444; font-weight: bold;">*Wajib transfer TEPAT hingga 3 digit angka terakhir.</p>
+        </div>
+
+        <p>Silakan selesaikan pembayaran ke rekening berikut:</p>
+
+        <div style="background-color: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <p style="margin: 0 0 5px 0; color: #64748b; text-transform: uppercase; font-size: 12px; font-weight: bold;">Transfer Ke Bank ${bankName}</p>
+            <p style="margin: 0 0 5px 0; font-size: 22px; color: #4f46e5; font-family: monospace; font-weight: bold; letter-spacing: 2px;">${bankNorek}</p>
+            <p style="margin: 0; font-size: 14px;"><b>A.n:</b> ${bankOwner}</p>
+        </div>
+
+        <p>Setelah transfer, konfirmasi melalui WhatsApp Admin agar produk segera kami aktifkan.</p>
+
+        <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 30px 0;">
+
+        <h3 style="color: #0f172a; margin-bottom: 10px;">🔐 Detail Akun Member Anda</h3>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; width: 100px;"><b>Link Login</b></td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;"><a href="${loginUrl}" style="color: #4f46e5; text-decoration: none;">${loginUrl}</a></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;"><b>Email</b></td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${email}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;"><b>Password</b></td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;"><code style="background: #f1f5f9; padding: 3px 6px; border-radius: 4px;">${pass}</code></td>
+            </tr>
+        </table>
+
+        <br>
+        <p>Salam hangat,<br><b>Tim ${siteName}</b></p>
+    </div>
+    `;
+    sendEmail(email, `Menunggu Pembayaran: Pesanan #${inv} - ${siteName}`, emailBuyerHtml, cfg);
+
+    // --> NOTIFIKASI ADMIN
+    const adminWA = getCfgFrom_(cfg, "wa_admin");
+    const affMsg = aff !== "-" ? `\n🤝 *Affiliate:* ${aff}\n💸 *Potensi Komisi:* Rp ${Number(komisiNominal).toLocaleString('id-ID')}` : "";
+    sendWA(adminWA, `🚨 *PESANAN BARU MASUK!* 🚨\n\n📌 *Invoice:* #${inv}\n📦 *Produk:* ${d.nama_produk}\n👤 *Customer:* ${d.nama}\n💳 *Nilai Unik:* Rp ${Number(hargaTotalUnik).toLocaleString('id-ID')}${affMsg}\n\nSilakan pantau pembayaran dari customer ini.`, cfg);
+
+    return { status: "success", invoice: inv, tagihan: hargaTotalUnik, is_new_user: isNew, password: isNew ? pass : null };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   UPDATE ORDER STATUS (MANUAL)
+========================= */
+function updateOrderStatus(d, cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+    const s = mustSheet_("Orders");
+    const uS = mustSheet_("Users"); // kept for compatibility (even if not used)
+    const pS = mustSheet_("Access_Rules");
+    const r = s.getDataRange().getValues();
+    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+
+    let orderFound = false, uEmail = "", uName = "", pId = "", pName = "", uWA = "";
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][0]) === String(d.id)) {
+        s.getRange(i + 1, 8).setValue("Lunas");
+        uEmail = r[i][1];
+        uName = r[i][2];
+        uWA = r[i][3];
+        pId = r[i][4];
+        pName = r[i][5];
+        orderFound = true;
+        break;
+      }
+    }
+
+    if (orderFound) {
+      let accessUrl = "";
+      const pData = pS.getDataRange().getValues();
+      for (let k = 1; k < pData.length; k++) {
+        if (String(pData[k][0]) === String(pId)) { accessUrl = pData[k][3]; break; }
+      }
+
+      sendWA(uWA, `🎉 *PEMBAYARAN TERVERIFIKASI!* 🎉\n\nHalo *${uName}*, kabar baik!\n\nPembayaran Anda untuk produk *${pName}* telah kami terima dan akses Anda kini *Telah Aktif*.\n\n🚀 *Klik link berikut untuk mengakses materi Anda:*\n${accessUrl}\n\nAnda juga bisa mengakses seluruh produk Anda melalui Member Area kami.\n\nTerima kasih atas kepercayaannya!\n*Tim ${siteName}*`, cfg);
+
+      const emailActivationHtml = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+              <h1 style="color: #10b981; margin-bottom: 5px;">Akses Telah Dibuka! 🎉</h1>
+          </div>
+          <p style="font-size: 16px;">Halo <b>${uName}</b>,</p>
+          <p>Terima kasih! Pembayaran Anda telah berhasil kami verifikasi. Akses penuh untuk produk <b>${pName}</b> sekarang sudah aktif dan dapat Anda gunakan.</p>
+
+          <div style="text-align: center; margin: 30px 0;">
+              <a href="${accessUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Akses Materi Sekarang</a>
+          </div>
+
+          <p>Sebagai alternatif, Anda selalu bisa menemukan semua produk yang Anda miliki dengan masuk ke Member Area menggunakan akun yang telah kami kirimkan sebelumnya.</p>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+          <p style="font-size: 14px; color: #64748b; margin-bottom: 0;">Salam Sukses,<br><b>Tim ${siteName}</b></p>
+      </div>
+      `;
+      sendEmail(uEmail, `Akses Terbuka! Produk ${pName} - ${siteName}`, emailActivationHtml, cfg);
+
+      return { status: "success" };
+    }
+
+    return { status: "error", message: "Order tidak ditemukan" };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   PRODUCT DETAIL
+========================= */
+function getProductDetail(d, cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+    const rules = mustSheet_("Access_Rules").getDataRange().getValues();
+    const pId = String(d.id).trim();
+    let productData = null;
+
+    for (let i = 1; i < rules.length; i++) {
+      if (String(rules[i][0]) === pId && String(rules[i][5]).trim() === "Active") {
+        productData = { id: pId, title: rules[i][1], desc: rules[i][2], harga: rules[i][4] };
+        break;
+      }
+    }
+    if (!productData) return { status: "error", message: "Produk tidak ditemukan" };
+
+    const paymentInfo = {
+      bank_name: getCfgFrom_(cfg, "bank_name"),
+      bank_norek: getCfgFrom_(cfg, "bank_norek"),
+      bank_owner: getCfgFrom_(cfg, "bank_owner"),
+      wa_admin: getCfgFrom_(cfg, "wa_admin")
+    };
+
+    let affName = "";
+    if (d.aff_id && d.aff_id !== "GUEST" && d.aff_id !== "-") {
+      const users = mustSheet_("Users").getDataRange().getValues();
+      for (let j = 1; j < users.length; j++) {
+        if (String(users[j][0]) === String(d.aff_id)) { affName = String(users[j][3]); break; }
+      }
+    }
+
+    return { status: "success", data: productData, payment: paymentInfo, aff_name: affName };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   GET PRODUCTS + KOMISI AFFILIATE
+========================= */
+function getProducts(d, cfg) {
+  cfg = cfg || getSettingsMap_();
+  const rules = mustSheet_("Access_Rules").getDataRange().getValues();
+  const orders = mustSheet_("Orders").getDataRange().getValues();
+  const users = mustSheet_("Users").getDataRange().getValues();
+  const email = String(d.email || "").trim().toLowerCase();
+
+  let lunasIds = [], totalKomisi = 0, uId = "";
+
+  if (email) {
+    for (let j = 1; j < users.length; j++) {
+      if (String(users[j][1]).toLowerCase() === email) { uId = String(users[j][0]); break; }
+    }
+    for (let x = 1; x < orders.length; x++) {
+      const r = orders[x];
+      if (String(r[1]).toLowerCase() === email && String(r[7]) === "Lunas") lunasIds.push(String(r[4]));
+      if (String(r[9]) === uId && String(r[7]) === "Lunas") totalKomisi += Number(r[10] || 0);
+    }
+  }
+
+  let owned = [], available = [];
+  for (let i = 1; i < rules.length; i++) {
+    if (String(rules[i][5]).trim() === "Active") {
+      const pId = String(rules[i][0]);
+      const hasAccess = (toNumberSafe_(rules[i][4]) === 0 || lunasIds.includes(pId));
+      const pObj = {
+        id: pId,
+        title: rules[i][1],
+        desc: rules[i][2],
+        url: hasAccess ? rules[i][3] : "#",
+        harga: rules[i][4],
+        access: hasAccess,
+        lp_url: rules[i][6] || ""
+      };
+      if (hasAccess && email) owned.push(pObj);
+      else available.push(pObj);
+    }
+  }
+
+  return { status: "success", owned, available, total_komisi: totalKomisi };
+}
+
+/* =========================
+   LOGIN + PAGE + ADMIN
+========================= */
+function loginUser(d) {
+  const u = mustSheet_("Users").getDataRange().getValues();
+  const e = String(d.email).trim().toLowerCase();
+  for (let i = 1; i < u.length; i++) {
+    if (String(u[i][1]).toLowerCase() === e && String(u[i][2]) === String(d.password)) {
+      return { status: "success", data: { id: u[i][0], nama: u[i][3], email: u[i][1] } };
+    }
+  }
+  return { status: "error", message: "Gagal Login: Cek kembali email/password" };
+}
+
+function getPageContent(d) {
+  try {
+    const r = mustSheet_("Pages").getDataRange().getValues();
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][1]) === String(d.slug)) return { status: "success", title: r[i][2], content: r[i][3] };
+    }
+    return { status: "error" };
+  } catch (e) {
+    return { status: "error" };
+  }
+}
+
+function getAllPages(d) {
+  try {
+    const r = mustSheet_("Pages").getDataRange().getValues();
+    const data = [];
+    const filterOwner = d.owner_id || "";
+    const onlyMine = d.only_mine === true;
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][4]) === "Active") {
+        // Kolom 7 (index 6) adalah Owner ID. Jika kosong, anggap milik ADMIN (Global)
+        const pageOwner = String(r[i][6] || "ADMIN"); 
+
+        if (onlyMine) {
+            // Mode "Halaman Saya": Hanya tampilkan milik user ini
+            if (pageOwner === filterOwner) data.push(r[i]);
+        } else {
+            // Mode Default (Global): Tampilkan halaman ADMIN (untuk affiliate link)
+            if (pageOwner === "ADMIN") data.push(r[i]);
+        }
+      }
+    }
+    return { status: "success", data: data };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function adminLogin(d) {
+  const u = mustSheet_("Users").getDataRange().getValues();
+  const e = String(d.email).trim().toLowerCase();
+  for (let i = 1; i < u.length; i++) {
+    if (
+      String(u[i][1]).toLowerCase() === e &&
+      String(u[i][2]) === String(d.password) &&
+      String(u[i][4]).toLowerCase() === "admin"
+    ) return { status: "success", data: { nama: u[i][3] } };
+  }
+  return { status: "error" };
+}
+
+function getAdminData(cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+    const o = mustSheet_("Orders").getDataRange().getValues();
+    const u = mustSheet_("Users").getDataRange().getValues();
+    const s = mustSheet_("Settings").getDataRange().getValues();
+    const p = mustSheet_("Access_Rules").getDataRange().getValues();
+    const pg = mustSheet_("Pages").getDataRange().getValues();
+
+    let rev = 0;
+    for (let i = 1; i < o.length; i++) {
+      if (String(o[i][7]) === "Lunas") rev += Number(o[i][6] || 0);
+    }
+
+    let t = {};
+    for (let i = 1; i < s.length; i++) {
+      if (s[i][0]) t[s[i][0]] = s[i][1];
+    }
+
+    return {
+      status: "success",
+      stats: { users: u.length - 1, orders: o.length - 1, rev: rev },
+      orders: o.slice(1).reverse(),
+      products: p.slice(1),
+      pages: pg.slice(1),
+      settings: t
+    };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   SAVE PRODUCT / PAGE / SETTINGS
+========================= */
+function saveProduct(d) {
+  try {
+    const s = mustSheet_("Access_Rules");
+    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url];
+    const isEdit = String(d.is_edit) === "true";
+
+    if (isEdit) {
+      const r = s.getDataRange().getValues();
+      for (let i = 1; i < r.length; i++) {
+        if (String(r[i][0]).trim() === String(d.id).trim()) {
+          s.getRange(i + 1, 1, 1, 7).setValues([dataRow]);
+          return { status: "success" };
+        }
+      }
+      return { status: "error", message: "ID Produk tidak ditemukan untuk diedit" };
+    } else {
+      s.appendRow(dataRow);
+      return { status: "success" };
+    }
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function savePage(d) {
+  try {
+    const s = mustSheet_("Pages");
+    const isEdit = String(d.is_edit) === "true";
+    const ownerId = String(d.owner_id || "ADMIN").trim(); // Default ke ADMIN
+
+    if (isEdit) {
+      const r = s.getDataRange().getValues();
+      for (let i = 1; i < r.length; i++) {
+        if (String(r[i][0]).trim() === String(d.id).trim()) {
+          // Hanya izinkan edit jika owner cocok (atau admin bisa edit semua)
+          const existingOwner = String(r[i][6] || "ADMIN");
+          // Logic permission:
+           // 1. If owner matches, allow.
+           // 2. If user is ADMIN, allow.
+           // Otherwise, deny.
+           if (existingOwner !== ownerId && ownerId !== "ADMIN") { 
+              return { status: "error", message: "Anda tidak memiliki izin mengedit halaman ini." };
+           }
+
+          s.getRange(i + 1, 1, 1, 4).setValues([[d.id, d.slug, d.title, d.content]]);
+          return { status: "success" };
+        }
+      }
+      return { status: "error", message: "ID Halaman tidak ditemukan" };
+    } else {
+      const newId = "PG-" + Date.now();
+      // Tambahkan Owner ID di kolom ke-7 (index 6)
+      s.appendRow([newId, d.slug, d.title, d.content, "Active", toISODate_(), ownerId]);
+      return { status: "success" };
+    }
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function updateSettings(d) {
+  const s = mustSheet_("Settings");
+  const r = s.getDataRange().getValues();
+  for (let k in d.payload) {
+    let f = false;
+    for (let i = 1; i < r.length; i++) {
+      if (r[i][0] === k) {
+        s.getRange(i + 1, 2).setValue(d.payload[k]);
+        f = true;
+        break;
+      }
+    }
+    if (!f) s.appendRow([k, d.payload[k]]);
+  }
+  return { status: "success" };
+}
+
+/* =========================
+   IMAGEKIT AUTH
+========================= */
+function getImageKitAuth(cfg) {
+  cfg = cfg || getSettingsMap_();
+  const p = getCfgFrom_(cfg, "ik_private_key");
+  if (!p) return { status: "error" };
+
+  const t = Utilities.getUuid();
+  const exp = Math.floor(Date.now() / 1000) + 2400;
+  const toSign = t + exp;
+
+  const sig = Utilities.computeHmacSignature(Utilities.MacAlgorithm.HMAC_SHA_1, toSign, p)
+    .map(b => ("0" + (b & 255).toString(16)).slice(-2))
+    .join("");
+
+  return { status: "success", token: t, expire: exp, signature: sig };
+}
+
+/* =========================
+   CHANGE PASSWORD
+========================= */
+function changeUserPassword(d) {
+  try {
+    const s = mustSheet_("Users");
+    const r = s.getDataRange().getValues();
+    const email = String(d.email).trim().toLowerCase();
+    const oldPass = String(d.old_password);
+    const newPass = String(d.new_password);
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][1]).trim().toLowerCase() === email) {
+        if (String(r[i][2]) === oldPass) {
+          s.getRange(i + 1, 3).setValue(newPass);
+          return { status: "success", message: "Password berhasil diubah" };
+        } else {
+          return { status: "error", message: "Password lama salah!" };
+        }
+      }
+    }
+    return { status: "error", message: "Email pengguna tidak ditemukan." };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   PERMISSION WARMUP
+========================= */
+function pancinganIzin() {
+  SpreadsheetApp.getActiveSpreadsheet().getName();
+  MailApp.getRemainingDailyQuota();
+  UrlFetchApp.fetch("https://google.com");
+  Logger.log("Pancingan sukses! Izin berhasil di-refresh.");
+}
+
+/* =========================
+   AUTO-PAYMENT SYSTEM (MOOTA WEBHOOK)
+========================= */
+function handleMootaWebhook(mutations, cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+
+    const s = mustSheet_("Orders");
+    const orders = s.getDataRange().getValues();
+    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+
+    // OPTIONAL: batasi hanya order pending max 48 jam terakhir (anti aktivasi order lama)
+    const MAX_AGE_HOURS = 48;
+
+    for (let m = 0; m < mutations.length; m++) {
+      const mutasi = mutations[m];
+      const type = String(mutasi.type || "").toLowerCase();
+
+      // HANYA PROSES UANG MASUK (CR = Credit)
+      if (type !== "cr" && type !== "credit") continue;
+
+      const nominalTransfer = toNumberSafe_(mutasi.amount);
+      if (nominalTransfer <= 0) continue;
+
+      // Cari order Pending yang nominalnya SAMA PERSIS
+      for (let i = 1; i < orders.length; i++) {
+        const statusOrder = String(orders[i][7] || "").trim();
+        if (statusOrder !== "Pending") continue;
+
+        // filter umur order (best-effort)
+        if (MAX_AGE_HOURS > 0) {
+          const dtStr = String(orders[i][8] || "").trim();
+          const dt = new Date(dtStr);
+          if (!isNaN(dt.getTime())) {
+            const ageHours = (Date.now() - dt.getTime()) / 36e5;
+            if (ageHours > MAX_AGE_HOURS) continue;
+          }
+        }
+
+        const tagihanOrder = toNumberSafe_(orders[i][6]);
+        if (tagihanOrder === nominalTransfer) {
+          // MATCH KETEMU! UBAH JADI LUNAS + update in-memory biar gak match lagi
+          s.getRange(i + 1, 8).setValue("Lunas");
+          orders[i][7] = "Lunas";
+
+          const inv = orders[i][0];
+          const uEmail = orders[i][1];
+          const uName = orders[i][2];
+          const uWA = orders[i][3];
+          const pId = orders[i][4];
+          const pName = orders[i][5];
+
+          // Cari Link Akses Produk
+          let accessUrl = "";
+          const pS = ss.getSheetByName("Access_Rules");
+          if (pS) {
+            const pData = pS.getDataRange().getValues();
+            for (let k = 1; k < pData.length; k++) {
+              if (String(pData[k][0]) === String(pId)) { accessUrl = pData[k][3]; break; }
+            }
+          }
+
+          // 1) WA CUSTOMER
+          sendWA(
+            uWA,
+            `🎉 *PEMBAYARAN TERVERIFIKASI OTOMATIS!* 🎉\n\nHalo *${uName}*, dana sebesar Rp ${Number(nominalTransfer).toLocaleString('id-ID')} telah berhasil diverifikasi oleh sistem kami.\n\nPesanan Anda untuk produk *${pName}* (Invoice: #${inv}) kini *Telah Aktif*.\n\n🚀 *Klik link berikut untuk mengakses materi Anda:*\n${accessUrl}\n\nTerima kasih atas kepercayaannya!\n*Tim ${siteName}*`,
+            cfg
+          );
+
+          // 2) EMAIL CUSTOMER
+          const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+                <h2 style="color: #10b981;">Pembayaran Berhasil Diverifikasi! 🚀</h2>
+                <p>Halo <b>${uName}</b>,</p>
+                <p>Sistem otomatis kami telah memverifikasi pembayaran Anda sebesar <b>Rp ${Number(nominalTransfer).toLocaleString('id-ID')}</b>. Akses produk <b>${pName}</b> Anda sekarang sudah aktif.</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${accessUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Akses Materi Sekarang</a>
+                </div>
+                <p>Terima kasih atas kepercayaannya!<br><b>Tim ${siteName}</b></p>
+            </div>`;
+          sendEmail(uEmail, `Akses Terbuka: Pesanan #${inv} - ${siteName}`, emailHtml, cfg);
+
+          // 3) WA ADMIN
+          const adminWA = getCfgFrom_(cfg, "wa_admin");
+          sendWA(
+            adminWA,
+            `💰 *AUTO-PAYMENT CLOSING!* 💰\n\nProduk *${pName}* telah terbayar lunas secara OTOMATIS sebesar Rp ${Number(nominalTransfer).toLocaleString('id-ID')}.\n\n👤 Customer: ${uName}\n🔖 Invoice: #${inv}\n✅ Status: Akses otomatis dikirim ke customer 🤖.`,
+            cfg
+          );
+
+          break; // stop cari order lain untuk mutasi ini
+        }
+      }
+    }
+
+    return ContentService.createTextOutput("OK").setMimeType(ContentService.MimeType.TEXT);
+  } catch (e) {
+    return ContentService.createTextOutput("ERROR: " + e.toString())
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
