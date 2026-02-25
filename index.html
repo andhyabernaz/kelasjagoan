@@ -36,6 +36,8 @@
                         document.querySelectorAll('.dyn-site-name').forEach(el => {
                             el.innerText = data.site_name;
                         });
+                        const logoImg = document.getElementById('dyn-site-logo');
+                        if(logoImg && logoImg.alt === '') logoImg.alt = data.site_name;
                     }
                     
                     // INJEKSI TAGLINE WEB
@@ -43,6 +45,17 @@
                         document.querySelectorAll('.dyn-site-tagline').forEach(el => {
                             el.innerText = data.site_tagline;
                         });
+                    }
+
+                    // INJEKSI LOGO URL
+                    if(data.site_logo) {
+                        const img = document.getElementById('dyn-site-logo');
+                        if (img) {
+                            img.src = data.site_logo;
+                            img.classList.remove('hidden');
+                        }
+                        const fb = document.getElementById('logo-fallback');
+                        if (fb) fb.classList.add('hidden');
                     }
                 };
 
@@ -96,8 +109,9 @@
 
     <header class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-           <div class="text-xl md:text-2xl font-black text-indigo-600 tracking-tighter uppercase flex items-center gap-2">
-                <i data-lucide="layers" class="w-6 h-6 md:w-8 md:h-8"></i>
+           <div class="text-xl md:text-2xl font-black text-indigo-600 tracking-tighter uppercase flex items-center gap-3">
+                <img id="dyn-site-logo" src="" alt="" class="h-8 w-auto hidden select-none" loading="lazy">
+                <i id="logo-fallback" data-lucide="layers" class="w-6 h-6 md:w-8 md:h-8"></i>
                 <strong class="dyn-site-name">CEPAT DIGITAL TEKNOLOGI</strong>
             </div>
             <a href="login.html" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all">
