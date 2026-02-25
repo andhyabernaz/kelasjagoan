@@ -24,7 +24,7 @@
             function applyWhiteLabel(data) {
                 // Auto Replace Text di Title Browser
                 if(data.site_name) {
-                    document.title = document.title.replace(/Melimpah Digital/gi, data.site_name).replace(/Melimpah/gi, data.site_name);
+                    document.title = `Login Member - ${data.site_name}`;
                 }
 
                 const updateDomElements = () => {
@@ -33,6 +33,18 @@
                         document.querySelectorAll('.dyn-site-name').forEach(el => {
                             el.innerText = data.site_name;
                         });
+                        const logoImg = document.getElementById('dyn-site-logo');
+                        if(logoImg && logoImg.alt === '') logoImg.alt = data.site_name;
+                    }
+
+                    if(data.site_logo) {
+                        const img = document.getElementById('dyn-site-logo');
+                        if (img) {
+                            img.src = data.site_logo;
+                            img.classList.remove('hidden');
+                        }
+                        const fb = document.getElementById('logo-fallback');
+                        if (fb) fb.classList.add('hidden');
                     }
                 };
 
@@ -87,7 +99,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Member - Melimpah Digital</title>
+    <title>Login Member</title>
     
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -117,12 +129,15 @@
     <main class="min-h-screen flex items-center justify-center p-6">
       <div class="w-full max-w-xl">
         <div class="mb-6 flex items-center justify-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center brand-badge">
+            <img id="dyn-site-logo" src="" alt="" class="h-10 w-auto hidden select-none" loading="lazy">
+            <div id="logo-fallback" class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center brand-badge">
                 <i data-lucide="layers" class="w-5 h-5"></i>
             </div>
             <div>
                 <p class="text-xs font-bold tracking-widest text-slate-400 uppercase">Selamat Datang</p>
-                <h1 class="text-xl font-extrabold tracking-tight text-slate-800 dyn-site-name">Member Area</h1>
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-800 dyn-site-name">
+                    <span class="opacity-0">Loading...</span>
+                </h1>
             </div>
         </div>
 
