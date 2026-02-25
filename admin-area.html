@@ -417,6 +417,10 @@
                             </h3>
                             <form id="form-sys" class="space-y-5">
                                 <div>
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Email Kontak</label>
+                                    <input type="email" id="set-email" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono text-xs">
+                                </div>
+                                <div>
                                     <label class="text-xs font-bold text-emerald-600 uppercase tracking-wider ml-1 mb-2 block">Fonnte Token (WA)</label>
                                     <input type="text" id="set-fonnte" class="w-full p-4 bg-emerald-50 border border-emerald-100 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all font-mono text-xs text-emerald-800">
                                 </div>
@@ -676,6 +680,7 @@
             document.getElementById('set-logo').value = r.settings.site_logo || ''; 
             document.getElementById('set-favicon').value = r.settings.site_favicon || ''; 
             document.getElementById('set-wa').value = r.settings.wa_admin || ''; 
+            document.getElementById('set-email').value = r.settings.contact_email || ''; 
             document.getElementById('set-fonnte').value = r.settings.fonnte_token || ''; 
             document.getElementById('set-ik-pub').value = IK_PUB = r.settings.ik_public_key || ''; 
             document.getElementById('set-ik-end').value = IK_END = r.settings.ik_endpoint || ''; 
@@ -879,7 +884,7 @@
 
         document.getElementById('form-sys').onsubmit = async (e) => { 
             e.preventDefault(); 
-            const p = { wa_admin: document.getElementById('set-wa').value, fonnte_token: document.getElementById('set-fonnte').value, ik_public_key: document.getElementById('set-ik-pub').value, ik_endpoint: document.getElementById('set-ik-end').value }; 
+            const p = { contact_email: document.getElementById('set-email').value, wa_admin: document.getElementById('set-wa').value, fonnte_token: document.getElementById('set-fonnte').value, ik_public_key: document.getElementById('set-ik-pub').value, ik_endpoint: document.getElementById('set-ik-end').value }; 
             await submitFormToGAS('form-sys', { action: 'update_settings', payload: p }, 'API Sistem Updated!');
         };
 

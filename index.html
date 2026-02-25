@@ -57,6 +57,17 @@
                         const fb = document.getElementById('logo-fallback');
                         if (fb) fb.classList.add('hidden');
                     }
+
+                    // INJEKSI KONTAK
+                    if(data.contact_email) {
+                        const a = document.getElementById('dyn-email-link');
+                        if(a) { a.href = 'mailto:' + data.contact_email; a.innerText = data.contact_email; }
+                    }
+                    if(data.wa_admin) {
+                        const wa = String(data.wa_admin).replace(/[^0-9]/g,'');
+                        const a = document.getElementById('dyn-wa-link');
+                        if(a) { a.href = 'https://wa.me/' + wa; a.innerText = (wa.startsWith('62')?'+':'') + wa; }
+                    }
                 };
 
                 if (document.readyState === 'loading') {
@@ -157,8 +168,8 @@
             </div>
             <div>
                 <h4 class="font-bold mb-4 text-slate-800">Hubungi Kami</h4>
-                <p class="text-sm text-slate-500 mb-2">Email: fira.zafirara@gmail.com</p>
-                <p class="text-sm text-slate-500">WhatsApp: +62 887-1271-633</p>
+                <p class="text-sm text-slate-500 mb-2">Email: <a id="dyn-email-link" href="mailto:fira.zafirara@gmail.com" class="text-indigo-600 hover:underline">fira.zafirara@gmail.com</a></p>
+                <p class="text-sm text-slate-500">WhatsApp: <a id="dyn-wa-link" href="https://wa.me/628871271633" class="text-indigo-600 hover:underline">+62 887-1271-633</a></p>
             </div>
         </div>
         <div class="text-center text-xs text-slate-400 mt-12 pt-8 border-t">
