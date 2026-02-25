@@ -255,7 +255,20 @@ function createOrder(d, cfg) {
       }
     }
     if (isNew) {
-      uS.appendRow(["USR-" + Date.now(), email, pass, d.nama, "member", toISODate_()]);
+      // Generate Friendly Unique ID (u-XXXXXX)
+      let newUserId = "u-" + Math.floor(100000 + Math.random() * 900000);
+      let unique = false;
+      while(!unique) {
+          unique = true;
+          for(let k=1; k<uData.length; k++) {
+              if(String(uData[k][0]) === newUserId) {
+                  unique = false;
+                  newUserId = "u-" + Math.floor(100000 + Math.random() * 900000);
+                  break;
+              }
+          }
+      }
+      uS.appendRow([newUserId, email, pass, d.nama, "member", toISODate_()]);
     }
 
     // Simpan order (struktur kolom sama dengan script lu)
