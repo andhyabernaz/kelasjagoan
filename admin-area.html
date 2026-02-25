@@ -727,9 +727,25 @@
 
         async function triggerPurgeCache() {
             const btn = document.getElementById('btn-purge'); const oriText = btn.innerHTML;
+            const zoneId = document.getElementById('set-cf-zone').value.trim();
+            const apiToken = document.getElementById('set-cf-token').value.trim();
+
+            if (!zoneId || !apiToken) {
+                showToast('Zone ID dan API Token wajib diisi!', 'warning');
+                return;
+            }
+
             btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> PROSES...'; btn.disabled = true; lucide.createIcons();
             try { 
-                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'purge_cf_cache' }) }); 
+                // Kirim credentials juga di payload untuk memastikan data terbaru yang dipakai
+                const res = await fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: 'purge_cf_cache',
+                        cf_zone_id: zoneId,
+                        cf_api_token: apiToken
+                    }) 
+                }); 
                 const r = await res.json(); 
                 showToast(r.message, r.status === 'success' ? 'success' : 'error'); 
             } catch (e) { 
@@ -890,7 +906,10 @@
 
         document.getElementById('form-cf').onsubmit = async (e) => { 
             e.preventDefault(); 
-            const p = { cf_zone_id: document.getElementById('set-cf-zone').value, cf_api_token: document.getElementById('set-cf-token').value }; 
+            const p = { 
+                cf_zone_id: document.getElementById('set-cf-zone').value.trim(), 
+                cf_api_token: document.getElementById('set-cf-token').value.trim() 
+            }; 
             await submitFormToGAS('form-cf', { action: 'update_settings', payload: p }, 'Kunci Cloudflare Disimpan!');
         };
 
