@@ -126,28 +126,28 @@
                 <strong class="dyn-site-name">CEPAT DIGITAL TEKNOLOGI</strong>
             </div>
             <a href="login.html" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all">
-                Login <i data-lucide="arrow-right" class="inline w-4 h-4 ml-1"></i>
+                Masuk <i data-lucide="arrow-right" class="inline w-4 h-4 ml-1"></i>
             </a>
         </div>
     </header>
 
     <section class="max-w-7xl mx-auto px-6 py-20 text-center">
-        <div class="inline-block bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 fade-in">NEW UPDATE</div>
-        <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-6 text-slate-900 fade-in delay-1">Tingkatkan Bisnis Digital Anda <br><span class="text-indigo-600">Hari Ini Juga.</span></h1>
-        <p class="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto mb-10 fade-in delay-2 font-medium">Bikin Bisnis Anda Cepat</p>
-        <a href="#katalog" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl shadow-slate-300 hover:scale-105 transition-all fade-in delay-3">Lihat Katalog Produk</a>
+        <div class="inline-block bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 fade-in">KOLEKSI TERBARU</div>
+        <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-6 text-slate-900 fade-in delay-1">Solusi Digital Praktis untuk <br><span class="text-indigo-600">Maksimalkan Hasil Bisnis Anda</span></h1>
+        <p class="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto mb-10 fade-in delay-2 font-medium">Temukan produk digital berkualitas yang siap membantu Anda mencapai tujuan lebih cepat dan efisien.</p>
+        <a href="#katalog" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl shadow-slate-300 hover:scale-105 transition-all fade-in delay-3">Jelajahi Katalog Sekarang</a>
     </section>
 
     <section id="katalog" class="max-w-7xl mx-auto px-6 py-10 mb-20 scroll-mt-24">
         <div class="text-center mb-12">
-            <h2 class="text-3xl font-black mb-4">Produk Digital Kami</h2>
-            <p class="text-slate-500">Pilih produk yang paling sesuai dengan kebutuhan Anda.</p>
+            <h2 class="text-3xl font-black mb-4">Pilihan Produk Unggulan</h2>
+            <p class="text-slate-500">Kurasi produk terbaik yang telah dipercaya ribuan pengguna di seluruh Indonesia.</p>
         </div>
         
         <div id="public-products" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div id="katalog-loader" class="col-span-full text-center py-10">
                 <div class="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Menyiapkan Katalog...</p>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Memuat Katalog Produk...</p>
             </div>
         </div>
     </section>
@@ -185,7 +185,8 @@
         function renderCatalog(products) {
             const container = document.getElementById('public-products');
             
-            if (!products || products.length === 0) {
+            // Safety check: Pastikan products adalah array valid
+            if (!products || !Array.isArray(products) || products.length === 0) {
                 container.innerHTML = '<p class="text-slate-400 text-center col-span-full py-10 border-2 border-dashed rounded-3xl">Katalog sedang diperbarui. Silakan kembali lagi nanti.</p>';
                 return;
             }
@@ -196,16 +197,16 @@
 
                 return `
                 <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col h-full fade-in ${delayClass}">
-                    <div class="mb-6"><span class="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">PRODUK DIGITAL</span></div>
+                    <div class="mb-6"><span class="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">PRODUK PILIHAN</span></div>
                     <h3 class="text-xl font-bold text-slate-800 mb-2">${p.title}</h3>
-                    <p class="text-sm text-slate-500 mb-8 flex-1 line-clamp-3">${p.desc || 'Akses materi terbaik kami di sini.'}</p>
+                    <p class="text-sm text-slate-500 mb-8 flex-1 line-clamp-3">${p.desc || 'Dapatkan akses eksklusif ke produk berkualitas tinggi yang telah terbukti memberikan hasil.'}</p>
                     <div class="flex items-center justify-between mt-auto pt-6 border-t border-slate-50">
                         <span class="text-lg font-black text-slate-800">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
                         <a href="${targetLink}" 
    target="_blank" 
    rel="noopener noreferrer"
    class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-indigo-600 transition-colors shadow-lg shadow-slate-200">
-   Cek Details
+   Lihat Selengkapnya
 </a>                    
                     </div>
                 </div>
@@ -221,7 +222,12 @@
             
             // JIKA ADA CACHE: Langsung render tanpa spinner loading!
             if (cachedData) {
-                renderCatalog(JSON.parse(cachedData));
+                try {
+                    renderCatalog(JSON.parse(cachedData));
+                } catch(e) {
+                    console.error("Cache corrupted", e);
+                    localStorage.removeItem(CACHE_KEY_CATALOG);
+                }
             } 
 
             // Pengecekan data terbaru di belakang layar
@@ -232,10 +238,13 @@
                 const r = await res.json();
                 
                 if (r.status === 'success') {
-                    const freshData = JSON.stringify(r.available);
+                    // Pastikan r.available adalah array, jika tidak gunakan array kosong
+                    const data = Array.isArray(r.available) ? r.available : [];
+                    const freshData = JSON.stringify(data);
+                    
                     if(cachedData !== freshData) {
                         localStorage.setItem(CACHE_KEY_CATALOG, freshData);
-                        renderCatalog(r.available);
+                        renderCatalog(data);
                     }
                 }
             } catch (err) { 
