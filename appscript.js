@@ -644,22 +644,38 @@ function savePage(d) {
     const s = mustSheet_("Pages");
     const isEdit = String(d.is_edit) === "true";
     const ownerId = String(d.owner_id || "ADMIN").trim(); // Default ke ADMIN
+    const slug = String(d.slug).trim();
+    const id = String(d.id).trim();
+
+    const r = s.getDataRange().getValues();
+
+    // 1. Cek Unik Slug (Global Check)
+    for (let i = 1; i < r.length; i++) {
+        const rowSlug = String(r[i][1]).trim();
+        const rowId = String(r[i][0]).trim();
+        
+        if (rowSlug === slug) {
+            // Jika slug sama, pastikan ini adalah halaman yang sama (sedang diedit)
+            // Jika ID beda, berarti slug sudah dipakai orang lain
+            if (isEdit && rowId === id) {
+                // Ini halaman kita sendiri, lanjut
+            } else {
+                return { status: "error", message: "Slug URL sudah digunakan. Pilih slug lain." };
+            }
+        }
+    }
 
     if (isEdit) {
-      const r = s.getDataRange().getValues();
       for (let i = 1; i < r.length; i++) {
-        if (String(r[i][0]).trim() === String(d.id).trim()) {
+        if (String(r[i][0]).trim() === id) {
           // Hanya izinkan edit jika owner cocok (atau admin bisa edit semua)
           const existingOwner = String(r[i][6] || "ADMIN").trim();
-          // Logic permission:
-           // 1. If owner matches, allow.
-           // 2. If user is ADMIN, allow.
-           // Otherwise, deny.
+          
            if (existingOwner !== ownerId && ownerId !== "ADMIN") { 
               return { status: "error", message: "Anda tidak memiliki izin mengedit halaman ini." };
            }
 
-          s.getRange(i + 1, 1, 1, 4).setValues([[d.id, d.slug, d.title, d.content]]);
+          s.getRange(i + 1, 1, 1, 4).setValues([[d.id, slug, d.title, d.content]]);
           return { status: "success" };
         }
       }
@@ -667,7 +683,7 @@ function savePage(d) {
     } else {
       const newId = "PG-" + Date.now();
       // Tambahkan Owner ID di kolom ke-7 (index 6)
-      s.appendRow([newId, d.slug, d.title, d.content, "Active", toISODate_(), ownerId]);
+      s.appendRow([newId, slug, d.title, d.content, "Active", toISODate_(), ownerId]);
       return { status: "success" };
     }
   } catch (e) {

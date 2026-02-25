@@ -777,6 +777,7 @@
         window.onload = () => {
             lucide.createIcons();
             loadDashboard();
+            loadMyPages(); // Load user's landing pages
         };
     </script>
     <!-- MODAL PAGE -->
@@ -817,8 +818,8 @@
     </div>
 
     <script>
-        // Overwrite downloadPageHTML to support My Pages and Modal Content
-        window.downloadPageHTML = function(slug, productId) {
+        // Impl function to avoid duplicate code issues
+        window.downloadPageHTML_impl = function(slug, productId) {
             let page = null;
             
             // 1. Check global pages
@@ -871,6 +872,10 @@
             showToast('HTML berhasil diunduh!', 'success');
         };
 
+        // Overwrite global function to use impl
+        window.downloadPageHTML = window.downloadPageHTML_impl;
+
+
         // Modal Functions
         function openPageModal() {
             document.getElementById('form-page').reset();
@@ -895,6 +900,15 @@
             document.getElementById('modal-page').classList.remove('hidden');
         }
 
+        // Helper Copy Link
+        function copyPageLink(slug) {
+            let baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+            if(baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+            const url = `${baseUrl}/p.html?s=${slug}`;
+            navigator.clipboard.writeText(url);
+            showToast('Link halaman disalin!', 'success');
+        }
+
         // Render User Pages
         function renderMyPages(pages) {
             window.myCachedPages = pages; // Cache for edit lookup
@@ -908,7 +922,7 @@
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                                 <code class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">${p[1]}</code>
-                                <button onclick="navigator.clipboard.writeText('${window.location.origin}/${p[1]}.html'); showToast('URL disalin!')" class="text-slate-400 hover:text-indigo-600"><i data-lucide="copy" class="w-3 h-3"></i></button>
+                                <button onclick="copyPageLink('${p[1]}')" class="text-slate-400 hover:text-indigo-600"><i data-lucide="copy" class="w-3 h-3"></i></button>
                             </div>
                         </td>
                         <td class="px-6 py-4 text-right">
