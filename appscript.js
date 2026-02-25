@@ -665,6 +665,10 @@ function savePage(d) {
         }
     }
 
+    // Check if columns exist
+    const maxCols = s.getMaxColumns();
+    if (maxCols < 10) s.insertColumnsAfter(maxCols, 10 - maxCols);
+
     if (isEdit) {
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][0]).trim() === id) {

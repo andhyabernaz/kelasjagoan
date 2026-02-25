@@ -533,9 +533,32 @@
         }
 
         function downloadPageHTML(slug, productId) {
-            if (!window.cachedPages) return showToast('Data halaman belum dimuat', 'warning');
+            let page = null;
             
-            const page = window.cachedPages.find(x => x[1] === slug);
+            // 1. Check global pages
+            if (window.cachedPages) {
+                page = window.cachedPages.find(x => x[1] === slug);
+            }
+            
+            // 2. Check my pages
+            if (!page && window.myCachedPages) {
+                page = window.myCachedPages.find(x => x[1] === slug);
+            }
+
+            // 3. Check current modal content (for preview/download before save)
+            if (!page) {
+                const modalSlug = document.getElementById('pg-slug') ? document.getElementById('pg-slug').value : '';
+                if (slug === modalSlug) {
+                     const title = document.getElementById('pg-title').value;
+                     const content = document.getElementById('pg-content').value;
+                     const pixelId = document.getElementById('pg-pixel-id').value;
+                     if(content) {
+                         // Mock page object structure: [id, slug, title, content, ..., ..., owner, pixelId]
+                         // Index 7 is pixelId
+                         page = ['TEMP', slug, title, content, 'Active', '', '', pixelId];
+                     }
+                }
+            }
             
             if (!page) return showToast('Konten halaman tidak ditemukan', 'error');
             
