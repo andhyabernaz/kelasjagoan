@@ -493,6 +493,7 @@ function getProducts(d, cfg) {
   const email = String(d.email || "").trim().toLowerCase();
 
   let lunasIds = [], totalKomisi = 0, uId = "";
+  let partners = [];
 
   if (email) {
     for (let j = 1; j < users.length; j++) {
@@ -501,7 +502,21 @@ function getProducts(d, cfg) {
     for (let x = 1; x < orders.length; x++) {
       const r = orders[x];
       if (String(r[1]).toLowerCase() === email && String(r[7]) === "Lunas") lunasIds.push(String(r[4]));
-      if (String(r[9]) === uId && String(r[7]) === "Lunas") totalKomisi += Number(r[10] || 0);
+      
+      // Check for Partners (Referrals)
+      if (String(r[9]) === uId) {
+          if (String(r[7]) === "Lunas") totalKomisi += Number(r[10] || 0);
+          
+          // Add to partner list
+          partners.push({
+              invoice: r[0],
+              name: r[2],
+              product: r[5],
+              status: r[7],
+              date: r[8] ? String(r[8]).substring(0, 10) : "-",
+              commission: r[10] || 0
+          });
+      }
     }
   }
 
@@ -524,7 +539,7 @@ function getProducts(d, cfg) {
     }
   }
 
-  return { status: "success", owned, available, total_komisi: totalKomisi };
+  return { status: "success", owned, available, total_komisi: totalKomisi, partners: partners.reverse() };
 }
 
 /* =========================

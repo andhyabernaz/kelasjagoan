@@ -131,9 +131,12 @@
 
         <nav class="p-4 space-y-1 flex-1 overflow-y-auto custom-scroll">
             <div class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2">Menu Utama</div>
-            <a href="#" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
+            <button onclick="switchSection('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left transition-all">
                 <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
-            </a>
+            </button>
+            <button onclick="switchSection('partner')" id="nav-partner" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left transition-all">
+                <i data-lucide="users" class="w-5 h-5"></i> Partner Saya
+            </button>
             
             <div class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">Akun</div>
             <button onclick="openPasswordModal()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-left">
@@ -345,6 +348,48 @@
                     </div>
                 </section>
 
+            </div>
+
+            <!-- PARTNER SECTION (Hidden by default) -->
+            <div id="section-partner" class="hidden fade-in-up space-y-10 max-w-7xl mx-auto">
+                <section>
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                                <i data-lucide="users" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">Partner Saya</h2>
+                                <p class="text-xs text-slate-400 font-medium">Daftar pengguna yang mendaftar melalui link affiliate Anda</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-panel">
+                        <div class="overflow-x-auto custom-scroll">
+                            <table class="w-full text-left text-sm min-w-[600px]">
+                                <thead class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+                                    <tr>
+                                        <th class="px-6 py-4 rounded-tl-xl">Tanggal</th>
+                                        <th class="px-6 py-4">Nama Partner</th>
+                                        <th class="px-6 py-4">Produk Dibeli</th>
+                                        <th class="px-6 py-4 text-center">Status</th>
+                                        <th class="px-6 py-4 text-right rounded-tr-xl">Komisi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="list-partners" class="divide-y divide-slate-100">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-8 text-center text-slate-400 text-xs">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-indigo-500"></i>
+                                                <span>Memuat data partner...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
             </div>
             
             <div class="mt-20 text-center border-t border-slate-200 pt-8 max-w-2xl mx-auto">
@@ -619,6 +664,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
         function renderDashboardUI(r) {
             if (r.pages) window.cachedPages = r.pages;
+            if (r.partners) renderPartners(r.partners);
             if (r.total_komisi !== undefined) {
                 document.getElementById('display-saldo-komisi').innerText = 'Rp ' + Number(r.total_komisi).toLocaleString('id-ID');
             }
@@ -818,6 +864,94 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             } catch (err) { 
                 if(!cachedData) showToast('Koneksi internet bermasalah.', 'error'); 
             }
+        }
+
+        function switchSection(sectionId) {
+            // Hide all sections
+            document.getElementById('dashboard-content').classList.add('hidden');
+            document.getElementById('section-partner').classList.add('hidden');
+            
+            // Show target section
+            if(sectionId === 'dashboard') document.getElementById('dashboard-content').classList.remove('hidden');
+            if(sectionId === 'partner') document.getElementById('section-partner').classList.remove('hidden');
+            
+            // Update Sidebar Active State
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if(sectionId === 'dashboard') document.getElementById('nav-dashboard').classList.add('active');
+            if(sectionId === 'partner') document.getElementById('nav-partner').classList.add('active');
+            
+            // Re-initialize icons if needed (sometimes helps with hidden elements)
+            setTimeout(() => lucide.createIcons(), 50);
+        }
+
+        function renderPartners(partners) {
+            const container = document.getElementById('list-partners');
+            if (!partners || partners.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center gap-4">
+                                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                                    <i data-lucide="users" class="w-8 h-8"></i>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500 font-bold mb-1">Belum ada Partner</p>
+                                    <p class="text-slate-400 text-xs">Bagikan link affiliate Anda untuk mendapatkan partner.</p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            container.innerHTML = partners.map(p => {
+                let statusClass = "bg-slate-100 text-slate-600 border-slate-200";
+                let statusIcon = "clock";
+                
+                if(String(p.status).toLowerCase() === 'lunas') {
+                    statusClass = "bg-emerald-50 text-emerald-600 border-emerald-100";
+                    statusIcon = "check-circle-2";
+                } else if(String(p.status).toLowerCase() === 'pending') {
+                    statusClass = "bg-amber-50 text-amber-600 border-amber-100";
+                    statusIcon = "hourglass";
+                }
+
+                return `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-6 py-4 text-slate-500 font-medium whitespace-nowrap">
+                        ${p.date}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase border border-indigo-100">
+                                ${p.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="text-slate-800 font-bold text-sm group-hover:text-indigo-600 transition-colors">${p.name}</p>
+                                <p class="text-xs text-slate-400 font-mono">#${p.invoice}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-slate-600 text-xs font-medium bg-white border border-slate-200 px-2 py-1 rounded inline-block">
+                            ${p.product}
+                        </p>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusClass}">
+                            <i data-lucide="${statusIcon}" class="w-3 h-3"></i> ${p.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="font-bold text-emerald-600 text-sm font-mono tracking-tight">
+                            Rp ${Number(p.commission).toLocaleString('id-ID')}
+                        </span>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
         }
 
         function logout() {
