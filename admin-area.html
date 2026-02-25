@@ -526,9 +526,14 @@
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Konten HTML</label>
                     <textarea id="pg-content" rows="15" placeholder="<!-- Paste kode HTML Landing Page di sini -->" class="w-full p-6 bg-slate-900 text-emerald-400 border border-slate-800 rounded-xl font-mono text-xs custom-scroll focus:ring-2 focus:ring-indigo-500/50 outline-none"></textarea>
                 </div>
-                <div class="flex justify-end gap-6 pt-6 border-t border-slate-100">
-                    <button type="button" onclick="closeModal('modal-page')" class="font-bold text-slate-400 hover:text-slate-600 transition-colors">BATAL</button>
-                    <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-xs uppercase tracking-wide">Publish Halaman</button>
+                <div class="flex items-center pt-6 border-t border-slate-100">
+                    <button type="button" onclick="downloadPageHTML()" class="mr-auto bg-emerald-50 text-emerald-600 border border-emerald-100 px-6 py-4 rounded-xl font-bold hover:bg-emerald-100 hover:text-emerald-700 transition-colors text-xs uppercase tracking-wide flex items-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> DOWNLOAD HTML
+                    </button>
+                    <div class="flex gap-4">
+                        <button type="button" onclick="closeModal('modal-page')" class="font-bold text-slate-400 hover:text-slate-600 transition-colors px-4 py-4">BATAL</button>
+                        <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-xs uppercase tracking-wide">Publish Halaman</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -671,7 +676,10 @@
                         <a href="p.html?s=${p[1]}" target="_blank" class="font-mono text-indigo-600 hover:underline text-xs bg-indigo-50 px-2 py-1 rounded">/p.html?s=${p[1]}</a>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        <button onclick="editPage('${p[0]}')" class="bg-white border border-slate-200 text-slate-500 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors px-4 py-2 rounded-xl font-bold text-xs">Edit</button>
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="downloadPageHTML('${p[0]}')" class="bg-white border border-slate-200 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors p-2 rounded-xl" title="Download HTML"><i data-lucide="download" class="w-4 h-4"></i></button>
+                            <button onclick="editPage('${p[0]}')" class="bg-white border border-slate-200 text-slate-500 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors px-4 py-2 rounded-xl font-bold text-xs">Edit</button>
+                        </div>
                     </td>
                 </tr>`).join('');
             
@@ -752,6 +760,36 @@
                 showToast('Gagal menghubungi server GAS.', 'error'); 
             }
             btn.innerHTML = oriText; btn.disabled = false; lucide.createIcons();
+        }
+
+        function downloadPageHTML(id = null) {
+            let content = '', filename = 'landing-page.html';
+            
+            if (id) {
+                // Dari List Pages
+                const p = cachedPages.find(x => x[0] === id);
+                if (!p) return showToast('Data halaman tidak ditemukan', 'error');
+                content = p[3];
+                filename = (p[1] || 'landing-page') + '.html';
+            } else {
+                // Dari Modal Editor
+                content = document.getElementById('pg-content').value;
+                const slug = document.getElementById('pg-slug').value;
+                filename = (slug || 'landing-page') + '.html';
+            }
+
+            if (!content) return showToast('Konten HTML kosong!', 'warning');
+
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('HTML berhasil diunduh!', 'success');
         }
 
         function editProd(id) { 
