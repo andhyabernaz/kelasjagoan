@@ -544,13 +544,13 @@ function getAllPages(d) {
   try {
     const r = mustSheet_("Pages").getDataRange().getValues();
     const data = [];
-    const filterOwner = d.owner_id || "";
+    const filterOwner = String(d.owner_id || "").trim();
     const onlyMine = d.only_mine === true;
 
     for (let i = 1; i < r.length; i++) {
       if (String(r[i][4]) === "Active") {
         // Kolom 7 (index 6) adalah Owner ID. Jika kosong, anggap milik ADMIN (Global)
-        const pageOwner = String(r[i][6] || "ADMIN"); 
+        const pageOwner = String(r[i][6] || "ADMIN").trim(); 
 
         if (onlyMine) {
             // Mode "Halaman Saya": Hanya tampilkan milik user ini
@@ -650,7 +650,7 @@ function savePage(d) {
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][0]).trim() === String(d.id).trim()) {
           // Hanya izinkan edit jika owner cocok (atau admin bisa edit semua)
-          const existingOwner = String(r[i][6] || "ADMIN");
+          const existingOwner = String(r[i][6] || "ADMIN").trim();
           // Logic permission:
            // 1. If owner matches, allow.
            // 2. If user is ADMIN, allow.

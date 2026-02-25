@@ -265,6 +265,9 @@
                                 <p class="text-xs text-slate-400 font-medium">Buat dan kelola landing page promosi Anda sendiri</p>
                             </div>
                         </div>
+                        <button onclick="loadMyPages()" class="text-slate-400 hover:text-indigo-600 p-2 rounded-lg transition-colors" title="Refresh Halaman">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
                         <button onclick="openPageModal()" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 transition-all text-xs uppercase tracking-wide">
                             <i data-lucide="plus" class="w-4 h-4"></i> Buat Halaman
                         </button>
@@ -928,20 +931,39 @@
 
         // Fetch User Pages
         async function loadMyPages() {
+            const container = document.getElementById('list-my-pages');
             try {
                 const userId = sessionStorage.getItem('user_id');
-                if(!userId) return;
+                console.log("Loading My Pages for User:", userId);
+                
+                if(!userId) {
+                    container.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-400 text-xs">Sesi berakhir. Silakan login ulang.</td></tr>`;
+                    return;
+                }
+
+                // Show loading state
+                container.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-xs"><i data-lucide="loader" class="w-4 h-4 animate-spin inline mr-2"></i> Memuat halaman...</td></tr>`;
+                lucide.createIcons();
+
+                const payload = { action: 'get_pages', owner_id: userId, only_mine: true };
+                console.log("Payload:", payload);
 
                 const res = await fetch(SCRIPT_URL, { 
                     method: 'POST', 
-                    body: JSON.stringify({ action: 'get_pages', owner_id: userId, only_mine: true }) 
+                    body: JSON.stringify(payload) 
                 });
                 const r = await res.json();
+                console.log("Response My Pages:", r);
+
                 if(r.status === 'success') {
                     renderMyPages(r.data);
+                } else {
+                    console.error("Error response:", r);
+                    container.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-400 text-xs">Gagal memuat: ${r.message || 'Error'}</td></tr>`;
                 }
             } catch(e) {
                 console.error("Failed to load my pages", e);
+                container.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-400 text-xs">Gagal koneksi server.</td></tr>`;
             }
         }
 
