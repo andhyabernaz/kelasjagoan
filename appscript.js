@@ -408,10 +408,11 @@ function updateOrderStatus(d, cfg) {
     const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
 
     let orderFound = false, uEmail = "", uName = "", pId = "", pName = "", uWA = "";
+    const newStatus = d.status || "Lunas";
 
     for (let i = 1; i < r.length; i++) {
       if (String(r[i][0]) === String(d.id)) {
-        s.getRange(i + 1, 8).setValue("Lunas");
+        s.getRange(i + 1, 8).setValue(newStatus);
         uEmail = r[i][1];
         uName = r[i][2];
         uWA = r[i][3];
@@ -423,6 +424,10 @@ function updateOrderStatus(d, cfg) {
     }
 
     if (orderFound) {
+      if (newStatus !== "Lunas") {
+        return { status: "success", message: "Status berhasil diubah menjadi " + newStatus };
+      }
+
       let accessUrl = "";
       const pData = pS.getDataRange().getValues();
       for (let k = 1; k < pData.length; k++) {
