@@ -802,7 +802,10 @@
                     ${p[7] ? `<div class="w-full aspect-square rounded-2xl overflow-hidden mb-4 border border-slate-100"><img src="${p[7]}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                     <h4 class="font-bold text-slate-800 text-lg mb-2 leading-snug">${p[1]}</h4>
                     <p class="text-xs text-slate-400 line-clamp-2 mb-6 font-medium leading-relaxed">${p[2]||'-'}</p>
-                    <button onclick="editProd('${p[0]}')" class="w-full bg-slate-50 text-slate-500 hover:bg-indigo-600 hover:text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all">Edit Produk</button>
+                    <div class="flex gap-2">
+                        <button onclick="editProd('${p[0]}')" class="flex-1 bg-slate-50 text-slate-500 hover:bg-indigo-600 hover:text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all">Edit Produk</button>
+                        <button onclick="deleteProd('${p[0]}', '${p[1].replace(/'/g, "\\'")}')" class="bg-red-50 text-red-500 hover:bg-red-600 hover:text-white px-4 py-3.5 rounded-xl font-bold transition-all" title="Hapus Produk"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
                 </div>`).join('');
             
             document.getElementById('list-pages').innerHTML = cachedPages.map(p => `
@@ -977,6 +980,29 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.getElementById('p-is-edit').value = 'true'; 
             document.getElementById('modal-prod').classList.remove('hidden'); 
         }
+
+        async function deleteProd(id, name) {
+            const confirmed = await customConfirm(`Hapus produk "${name}"? Tindakan ini tidak dapat dibatalkan.`);
+            if(!confirmed) return;
+
+            showToast('Menghapus produk...', 'warning');
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'delete_product', id: id })
+                });
+                const r = await res.json();
+                if(r.status === 'success') {
+                    showToast('Produk berhasil dihapus!', 'success');
+                    forceSync();
+                } else {
+                    showToast(r.message, 'error');
+                }
+            } catch(e) {
+                showToast('Gagal menghapus produk: ' + e.toString(), 'error');
+            }
+        }
+
         function editPage(id) { 
             const p = cachedPages.find(x => x[0] === id); 
             if(!p) return; 

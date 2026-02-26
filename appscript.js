@@ -138,6 +138,7 @@ function doPost(e) {
       case "get_dashboard_data": return jsonRes(getDashboardData(data));
       case "normalize_users": return jsonRes(normalizeUsersSheet());
       case "create_duitku_payment": return jsonRes(createDuitkuPayment(data, cfg));
+      case "delete_product": return jsonRes(deleteProduct(data));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar: " + (action || "unknown") });
     }
   } catch (err) {
@@ -782,6 +783,24 @@ function saveProduct(d) {
       s.appendRow(dataRow);
       return { status: "success" };
     }
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function deleteProduct(d) {
+  try {
+    const s = mustSheet_("Access_Rules");
+    const r = s.getDataRange().getValues();
+    const id = String(d.id).trim();
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][0]).trim() === id) {
+        s.deleteRow(i + 1);
+        return { status: "success", message: "Produk berhasil dihapus" };
+      }
+    }
+    return { status: "error", message: "ID Produk tidak ditemukan" };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
