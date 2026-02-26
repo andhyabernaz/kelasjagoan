@@ -454,6 +454,7 @@
                                 </div>
 
                                 <button type="submit" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold uppercase text-xs mt-4 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">Update API Sistem</button>
+                                <button type="button" onclick="normalizeUsers()" class="w-full bg-emerald-600 text-white p-4 rounded-xl font-bold uppercase text-xs mt-2 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all">Sinkronisasi Kolom Users</button>
                             </form>
                         </div>
                     </div>
@@ -1055,6 +1056,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             }; 
             await submitFormToGAS('form-cf', { action: 'update_settings', payload: p }, 'Kunci Cloudflare Disimpan!');
         };
+
+        async function normalizeUsers() {
+            await submitFormToGAS('form-sys', { action: 'normalize_users' }, 'Kolom Users tersinkron!');
+        }
 
         window.onload = () => { lucide.createIcons(); if(sessionStorage.getItem('adm_v10')) init(); };
     </script>

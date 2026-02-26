@@ -133,6 +133,7 @@ function doPost(e) {
       case "change_password": return jsonRes(changeUserPassword(data));
       case "update_profile": return jsonRes(updateUserProfile(data));
       case "forgot_password": return jsonRes(forgotPassword(data));
+      case "normalize_users": return jsonRes(normalizeUsersSheet());
       case "create_duitku_payment": return jsonRes(createDuitkuPayment(data, cfg));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar" });
     }
@@ -284,7 +285,7 @@ function createOrder(d, cfg) {
               }
           }
       }
-      uS.appendRow([newUserId, email, pass, d.nama, "member", toISODate_()]);
+      uS.appendRow([newUserId, email, pass, d.nama, "member", "Active", toISODate_(), "-"]);
     }
 
     // Simpan order (struktur kolom sama dengan script lu)
@@ -885,6 +886,40 @@ function pancinganIzin() {
   Logger.log("Pancingan sukses! Izin berhasil di-refresh.");
 }
 
+function normalizeUsersSheet() {
+  try {
+    const s = mustSheet_("Users");
+    const r = s.getDataRange().getValues();
+    let fixed = 0;
+    for (let i = 1; i < r.length; i++) {
+      const role = String(r[i][4] || "").trim();
+      const status = String(r[i][5] || "").trim();
+      const joinDate = String(r[i][6] || "").trim();
+      const expired = String(r[i][7] || "").trim();
+      let needWrite = false;
+      let newRole = role || "member";
+      let newStatus = status || "Active";
+      let newJoin = joinDate;
+      let newExpired = expired || "-";
+      const isDateLike = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(String(v));
+      if (!isDateLike(joinDate) && isDateLike(status)) {
+        newJoin = status;
+        newStatus = "Active";
+        needWrite = true;
+      }
+      if (role !== newRole || status !== newStatus || joinDate !== newJoin || expired !== newExpired) {
+        needWrite = true;
+      }
+      if (needWrite) {
+        s.getRange(i + 1, 5, 1, 4).setValues([[newRole, newStatus, newJoin || toISODate_(), newExpired]]);
+        fixed++;
+      }
+    }
+    return { status: "success", fixed };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
 /* =========================
    DUITKU PAYMENT GATEWAY
 ========================= */
