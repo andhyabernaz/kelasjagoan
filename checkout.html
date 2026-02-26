@@ -168,6 +168,41 @@
                             </div>
                         </div>
 
+                        <!-- PAYMENT METHOD SELECTION -->
+                        <div id="payment-method-section" class="hidden">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Metode Pembayaran</label>
+                            <div class="space-y-3">
+                                <!-- BANK TRANSFER (DEFAULT) -->
+                                <label class="relative flex items-center p-4 border rounded-xl cursor-pointer transition-all border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600" id="opt-bank">
+                                    <input type="radio" name="payment_method" value="bank" class="hidden" checked onchange="selectPayment('bank')">
+                                    <div class="w-5 h-5 rounded-full border border-indigo-600 bg-white flex items-center justify-center mr-3">
+                                        <div class="w-3 h-3 rounded-full bg-indigo-600"></div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <span class="block text-sm font-bold text-slate-900">Transfer Bank (Manual)</span>
+                                        <span class="block text-[10px] text-slate-500 font-medium">Cek Manual via WhatsApp Admin</span>
+                                    </div>
+                                    <i data-lucide="arrow-left-right" class="w-5 h-5 text-slate-400"></i>
+                                </label>
+
+                                <!-- DUITKU (AUTO) -->
+                                <label class="relative flex items-center p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" id="opt-duitku">
+                                    <input type="radio" name="payment_method" value="duitku" class="hidden" onchange="selectPayment('duitku')">
+                                    <div class="w-5 h-5 rounded-full border border-slate-300 bg-white flex items-center justify-center mr-3">
+                                        <div class="w-3 h-3 rounded-full bg-transparent"></div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <span class="block text-sm font-bold text-slate-900">QRIS / Virtual Account (Otomatis)</span>
+                                        <span class="block text-[10px] text-slate-500 font-medium">Verifikasi Instan 24 Jam</span>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <i data-lucide="qr-code" class="w-5 h-5 text-slate-400"></i>
+                                        <i data-lucide="zap" class="w-5 h-5 text-amber-500 fill-amber-500"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <button type="submit" id="btn-submit" class="w-full bg-slate-900 text-white rounded-xl py-5 px-6 font-black uppercase tracking-widest text-[11px] transition-all shadow-xl mt-4 flex items-center justify-center gap-3 hover:bg-indigo-600 group">
                             Proses Pemesanan <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
                         </button>
@@ -260,14 +295,52 @@
         }
 
         let sysPayment = {};
+        let selectedPayment = 'bank';
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
         
         const PRODUCT_CACHE_KEY = 'melimpah_product_' + productId;
 
+        function selectPayment(method) {
+            selectedPayment = method;
+            const radios = document.querySelectorAll('input[name="payment_method"]');
+            radios.forEach(el => {
+                if(el.value === method) el.checked = true;
+                const parent = el.parentElement;
+                const circle = parent.querySelector('.rounded-full');
+                const dot = circle.querySelector('div');
+
+                if(el.value === method) {
+                    parent.classList.add('border-indigo-600', 'bg-indigo-50', 'ring-1', 'ring-indigo-600');
+                    parent.classList.remove('border-slate-200');
+                    circle.classList.add('border-indigo-600');
+                    circle.classList.remove('border-slate-300');
+                    dot.classList.add('bg-indigo-600');
+                    dot.classList.remove('bg-transparent');
+                } else {
+                    parent.classList.remove('border-indigo-600', 'bg-indigo-50', 'ring-1', 'ring-indigo-600');
+                    parent.classList.add('border-slate-200');
+                    circle.classList.remove('border-indigo-600');
+                    circle.classList.add('border-slate-300');
+                    dot.classList.remove('bg-indigo-600');
+                    dot.classList.add('bg-transparent');
+                }
+            });
+        }
+
         function renderCheckoutUI(r) {
             const p = r.data; sysPayment = r.payment;
             
+            // PAYMENT METHOD LOGIC
+            const paySection = document.getElementById('payment-method-section');
+            if(sysPayment.duitku_active) {
+                paySection.classList.remove('hidden');
+                selectPayment('bank'); // Default
+            } else {
+                paySection.classList.add('hidden');
+                selectedPayment = 'bank';
+            }
+
             if(r.aff_name && r.aff_name !== "") {
                 document.getElementById('affiliate-id-display').innerText = r.aff_name;
                 document.getElementById('affiliate-badge').classList.remove('hidden');
@@ -386,6 +459,8 @@
 
             try {
                 const targetUrl = window.SCRIPT_URL || SCRIPT_URL;
+                
+                // 1. CREATE ORDER FIRST
                 const res = await fetch(targetUrl, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -394,6 +469,38 @@
                 const r = await res.json();
 
                 if(r.status === 'success') {
+                    // IF DUITKU SELECTED
+                    if (selectedPayment === 'duitku') {
+                        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> MENGHUBUNGKAN DUITKU...';
+                        
+                        const duitkuPayload = {
+                            action: 'create_duitku_payment',
+                            amount: r.tagihan, // Use unique amount if needed, or original price
+                            invoice: r.invoice,
+                            product_name: pData.nama_produk,
+                            email: pData.email,
+                            phone: pData.whatsapp,
+                            name: pData.nama
+                        };
+
+                        const resD = await fetch(targetUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify(duitkuPayload)
+                        });
+                        const rD = await resD.json();
+
+                        if (rD.status === 'success' && rD.paymentUrl) {
+                            window.location.href = rD.paymentUrl;
+                            return; // Stop execution, redirecting
+                        } else {
+                            showToast('Gagal membuat link pembayaran Duitku: ' + (rD.message || 'Error'), 'error');
+                            // Fallback to manual or stay on page?
+                            // Let's stay on page but show success state as manual fallback
+                        }
+                    }
+
+                    // MANUAL TRANSFER FLOW (OR FALLBACK)
                     window.scrollTo({top: 0, behavior: 'smooth'}); 
                     
                     document.getElementById('checkout-form-section').classList.add('hidden');
