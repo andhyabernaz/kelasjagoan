@@ -130,6 +130,7 @@ function doPost(e) {
       case "save_page": return jsonRes(savePage(data));
       case "update_settings": return jsonRes(updateSettings(data));
       case "get_ik_auth": return jsonRes(getImageKitAuth(cfg));
+      case "get_media_files": return jsonRes(getIkFiles(cfg));
       case "purge_cf_cache": return jsonRes(purgeCFCache(cfg));
       case "change_password": return jsonRes(changeUserPassword(data));
       case "update_profile": return jsonRes(updateUserProfile(data));
@@ -191,6 +192,44 @@ function purgeCFCache(cfg) {
     }
     const msg = (body && body.errors && body.errors.length) ? JSON.stringify(body.errors) : "Cloudflare Error";
     return { status: "error", message: msg };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function getIkFiles(cfg) {
+  cfg = cfg || getSettingsMap_();
+  const privateKey = getCfgFrom_(cfg, "ik_private_key");
+  if (!privateKey) return { status: "error", message: "Private Key belum disetting" };
+
+  try {
+    const url = "https://api.imagekit.io/v1/files?sort=DESC_CREATED&limit=20"; // Limit 20 terbaru
+    const authHeader = "Basic " + Utilities.base64Encode(privateKey + ":");
+    
+    const options = {
+      method: "get",
+      headers: {
+        "Authorization": authHeader
+      },
+      muteHttpExceptions: true
+    };
+
+    const res = UrlFetchApp.fetch(url, options);
+    const data = JSON.parse(res.getContentText());
+
+    if (Array.isArray(data)) {
+        // Map data to simpler format
+        const files = data.map(f => ({
+            name: f.name,
+            url: f.url,
+            thumbnail: f.thumbnailUrl || f.url,
+            fileId: f.fileId,
+            type: f.fileType
+        }));
+        return { status: "success", files: files };
+    } else {
+        return { status: "error", message: data.message || "Gagal mengambil data file" };
+    }
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
