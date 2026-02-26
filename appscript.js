@@ -138,7 +138,7 @@ function doPost(e) {
       case "get_dashboard_data": return jsonRes(getDashboardData(data));
       case "normalize_users": return jsonRes(normalizeUsersSheet());
       case "create_duitku_payment": return jsonRes(createDuitkuPayment(data, cfg));
-      default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar" });
+      default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar: " + (action || "unknown") });
     }
   } catch (err) {
     return jsonRes({ status: "error", message: err.toString() });
