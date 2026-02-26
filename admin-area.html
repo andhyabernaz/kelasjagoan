@@ -535,6 +535,19 @@
                     <input type="text" id="p-lp" placeholder="Contoh: p.html?s=promo" class="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-xl font-medium text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20" required>
                 </div>
                 <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Link Gambar Produk (Opsional)</label>
+                    <div class="flex gap-4 items-start">
+                        <div class="flex-1">
+                            <input type="text" id="p-image" placeholder="https://ik.imagekit.io/..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-xs font-mono" oninput="updateProdPreview(this.value)">
+                            <p class="text-[10px] text-slate-400 mt-2">Gunakan URL dari Media Center.</p>
+                        </div>
+                        <div class="w-20 h-20 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                             <img id="p-image-preview" src="" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden'); document.getElementById('p-image-placeholder').classList.remove('hidden');">
+                             <i data-lucide="image" class="w-6 h-6 text-slate-300" id="p-image-placeholder"></i>
+                        </div>
+                    </div>
+                </div>
+                <div>
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Link Akses Materi</label>
                     <input type="text" id="p-url" placeholder="https://..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium" required>
                 </div>
@@ -610,6 +623,19 @@
     </div>
 
     <script>
+        function updateProdPreview(url) {
+            const preview = document.getElementById('p-image-preview');
+            const placeholder = document.getElementById('p-image-placeholder');
+            if (url && url.length > 10) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            } else {
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+        }
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -758,6 +784,7 @@
                         <span class="text-[10px] font-bold bg-slate-50 text-slate-400 px-3 py-1.5 rounded-full uppercase tracking-wider group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">${p[0]}</span>
                         <span class="text-sm font-bold text-slate-800">Rp ${Number(p[4]).toLocaleString('id-ID')}</span>
                     </div>
+                    ${p[7] ? `<div class="w-full aspect-square rounded-2xl overflow-hidden mb-4 border border-slate-100"><img src="${p[7]}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                     <h4 class="font-bold text-slate-800 text-lg mb-2 leading-snug">${p[1]}</h4>
                     <p class="text-xs text-slate-400 line-clamp-2 mb-6 font-medium leading-relaxed">${p[2]||'-'}</p>
                     <button onclick="editProd('${p[0]}')" class="w-full bg-slate-50 text-slate-500 hover:bg-indigo-600 hover:text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all">Edit Produk</button>
@@ -929,6 +956,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.getElementById('p-url').value = p[3]; 
             document.getElementById('p-harga').value = p[4]; 
             document.getElementById('p-lp').value = p[6] || ""; 
+            const imgUrl = p[7] || "";
+            document.getElementById('p-image').value = imgUrl;
+            updateProdPreview(imgUrl);
             document.getElementById('p-is-edit').value = 'true'; 
             document.getElementById('modal-prod').classList.remove('hidden'); 
         }
@@ -1021,7 +1051,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             }
         }
 
-        function openProdModal() { document.getElementById('form-prod').reset(); document.getElementById('p-is-edit').value = 'false'; document.getElementById('modal-prod').classList.remove('hidden'); }
+        function openProdModal() { document.getElementById('form-prod').reset(); updateProdPreview(''); document.getElementById('p-is-edit').value = 'false'; document.getElementById('modal-prod').classList.remove('hidden'); }
         function openPageModal() { document.getElementById('form-page').reset(); document.getElementById('pg-is-edit').value = 'false'; document.getElementById('modal-page').classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function logout() { sessionStorage.clear(); localStorage.removeItem(CACHE_KEY_ADMIN); location.reload(); }
@@ -1070,7 +1100,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 desc: document.getElementById('p-desc').value, 
                 url: document.getElementById('p-url').value, 
                 harga: document.getElementById('p-harga').value, 
-                lp_url: document.getElementById('p-lp').value, 
+                lp_url: document.getElementById('p-lp').value,
+                image_url: document.getElementById('p-image').value, 
                 status: 'Active', 
                 is_edit: document.getElementById('p-is-edit').value === 'true' 
             }; 

@@ -208,6 +208,7 @@
                 return `
                 <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col h-full fade-in ${delayClass}">
                     <div class="mb-6"><span class="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">PRODUK PILIHAN</span></div>
+                    ${p.image_url ? `<div class="w-full aspect-square rounded-2xl overflow-hidden mb-6 border border-slate-100"><img src="${p.image_url}" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                     <h3 class="text-xl font-bold text-slate-800 mb-2">${p.title}</h3>
                     <p class="text-sm text-slate-500 mb-8 flex-1 line-clamp-3">${p.desc || 'Dapatkan akses eksklusif ke produk berkualitas tinggi yang telah terbukti memberikan hasil.'}</p>
                     <div class="flex items-center justify-between mt-auto pt-6 border-t border-slate-50">

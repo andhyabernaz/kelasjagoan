@@ -134,6 +134,7 @@ function doPost(e) {
       case "change_password": return jsonRes(changeUserPassword(data));
       case "update_profile": return jsonRes(updateUserProfile(data));
       case "forgot_password": return jsonRes(forgotPassword(data));
+      case "get_dashboard_data": return jsonRes(getDashboardData(data));
       case "normalize_users": return jsonRes(normalizeUsersSheet());
       case "create_duitku_payment": return jsonRes(createDuitkuPayment(data, cfg));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar" });
@@ -556,7 +557,8 @@ function getProducts(d, cfg) {
         url: hasAccess ? rules[i][3] : "#",
         harga: rules[i][4],
         access: hasAccess,
-        lp_url: rules[i][6] || ""
+        lp_url: rules[i][6] || "",
+        image_url: rules[i][7] || ""
       };
       if (hasAccess && email) owned.push(pObj);
       else available.push(pObj);
@@ -564,6 +566,56 @@ function getProducts(d, cfg) {
   }
 
   return { status: "success", owned, available, total_komisi: totalKomisi, partners: partners.reverse() };
+}
+
+function getDashboardData(d) {
+  try {
+    const cfg = getSettingsMap_();
+    
+    // 1. Get User ID from Email (Efficient Lookup)
+    const email = String(d.email || "").trim().toLowerCase();
+    const users = mustSheet_("Users").getDataRange().getValues();
+    let userId = "";
+    let userNama = "";
+    for(let i=1; i<users.length; i++) {
+        if(String(users[i][1]).toLowerCase() === email) {
+            userId = String(users[i][0]);
+            userNama = String(users[i][3]);
+            break;
+        }
+    }
+    
+    // 2. Get Products (reuse existing logic)
+    const productsData = getProducts(d, cfg);
+    
+    // 3. Get Global Pages (Affiliate Tools - ADMIN owned)
+    const globalPages = getAllPages({ ...d, owner_id: "" });
+    
+    // 4. Get My Pages (User owned)
+    let myPages = { data: [] };
+    if(userId) {
+        myPages = getAllPages({ ...d, owner_id: userId, only_mine: true });
+    }
+    
+    return {
+      status: "success",
+      data: {
+        user: { id: userId, nama: userNama },
+        settings: { 
+            site_name: getCfgFrom_(cfg, "site_name"),
+            site_logo: getCfgFrom_(cfg, "site_logo"),
+            site_favicon: getCfgFrom_(cfg, "site_favicon"),
+            affiliate_commission: getCfgFrom_(cfg, "affiliate_commission"),
+            wa_admin: getCfgFrom_(cfg, "wa_admin")
+        },
+        products: productsData,
+        pages: globalPages.data || [],
+        my_pages: myPages.data || []
+      }
+    };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
 }
 
 /* =========================
@@ -671,14 +723,18 @@ function getAdminData(cfg) {
 function saveProduct(d) {
   try {
     const s = mustSheet_("Access_Rules");
-    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url];
+    
+    // Ensure we have enough columns (8 columns needed)
+    if (s.getMaxColumns() < 8) s.insertColumnsAfter(s.getMaxColumns(), 8 - s.getMaxColumns());
+    
+    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url];
     const isEdit = String(d.is_edit) === "true";
 
     if (isEdit) {
       const r = s.getDataRange().getValues();
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][0]).trim() === String(d.id).trim()) {
-          s.getRange(i + 1, 1, 1, 7).setValues([dataRow]);
+          s.getRange(i + 1, 1, 1, 8).setValues([dataRow]);
           return { status: "success" };
         }
       }

@@ -57,15 +57,9 @@
             if (cached && cached.data) { applyGlobalSettings(cached.data); }
 
             if (!cached || !cached.time || (now - cached.time > CACHE_AGE)) {
-                if(typeof SCRIPT_URL === 'undefined') { console.error("SCRIPT_URL belum didefinisikan di config.js!"); return; }
-                fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_global_settings' }) })
-                    .then(res => res.json())
-                    .then(r => {
-                        if(r.status === 'success') {
-                            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: r.data, time: now }));
-                            applyGlobalSettings(r.data); 
-                        }
-                    }).catch(e => console.error("Global Settings Sync Failed", e));
+                // Optimization: Skip separate fetch here. 
+                // loadDashboard() will fetch settings via get_dashboard_data and update this cache.
+                // This prevents double network requests on load.
             }
         })();
     </script>
@@ -720,6 +714,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
         function renderDashboardUI(r) {
             if (r.pages) window.cachedPages = r.pages;
+            if (r.my_pages) renderMyPages(r.my_pages);
             if (r.partners) renderPartners(r.partners);
             if (r.total_komisi !== undefined) {
                 document.getElementById('display-saldo-komisi').innerText = 'Rp ' + Number(r.total_komisi).toLocaleString('id-ID');
@@ -741,6 +736,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                                     <i data-lucide="check-circle-2" class="w-3 h-3"></i> Aktif
                                 </span>
                             </div>
+                            ${p.image_url ? `<div class="w-full aspect-square rounded-2xl overflow-hidden mb-6 border border-slate-100"><img src="${p.image_url}" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                             <h3 class="text-lg font-bold text-slate-800 mb-2 leading-tight group-hover:text-indigo-600 transition-colors clamp-2">${p.title}</h3>
                             <p class="text-xs text-slate-500 mb-6 flex-1 clamp-3 leading-relaxed">${p.desc}</p>
                             
@@ -778,6 +774,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                                     <i data-lucide="tag" class="w-3 h-3"></i> Tersedia
                                 </span>
                             </div>
+                            ${p.image_url ? `<div class="w-full aspect-square rounded-2xl overflow-hidden mb-6 border border-slate-100"><img src="${p.image_url}" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                             <h3 class="text-lg font-bold text-slate-800 mb-2 leading-tight clamp-2">${p.title}</h3>
                             <p class="text-xs text-slate-500 mb-4 flex-1 clamp-2 leading-relaxed">${p.desc}</p>
                             <div class="mb-6 pt-4 border-t border-slate-50">
@@ -881,43 +878,49 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             const cachedData = localStorage.getItem(cacheKeyUser);
             
             if(cachedData) {
-                renderDashboardUI(JSON.parse(cachedData));
+                const parsed = JSON.parse(cachedData);
+                // Apply cached settings immediately for better UX
+                if(parsed.settings) applyGlobalSettings(parsed.settings);
+                renderDashboardUI(parsed);
             }
 
             try {
                 if(typeof SCRIPT_URL === 'undefined') return;
                 
-                // Fetch Products
+                // SINGLE BATCH REQUEST - OPTIMIZED
+                // Menggantikan 3 request terpisah (settings, products, pages) menjadi 1
                 const res = await fetch(SCRIPT_URL, { 
                     method: 'POST', 
-                    body: JSON.stringify({ action: 'get_products', email: userEmail }) 
+                    body: JSON.stringify({ action: 'get_dashboard_data', email: userEmail }) 
                 });
                 const r = await res.json();
 
-                // Fetch Pages for HTML Download
-                let pagesData = [];
-                try {
-                    const pageRes = await fetch(SCRIPT_URL, { 
-                        method: 'POST', 
-                        body: JSON.stringify({ action: 'get_pages', email: userEmail }) 
-                    });
-                    const rPages = await pageRes.json();
-                    if(rPages.status === 'success') {
-                        pagesData = rPages.data;
-                    }
-                } catch(e) { console.error("Failed to fetch pages", e); }
+                if (r.status === 'success' && r.data) {
+                    // Gabungkan data backend ke format UI
+                    const combinedData = {
+                        ...r.data.products, // owned, available, partners, total_komisi
+                        pages: r.data.pages,
+                        settings: r.data.settings
+                    };
 
-                if (r.status === 'success') {
-                    r.pages = pagesData;
-                    const freshData = JSON.stringify(r);
+                    const freshData = JSON.stringify(combinedData);
+                    
+                    // Update cache & UI
                     if(cachedData !== freshData) {
                         localStorage.setItem(cacheKeyUser, freshData);
-                        renderDashboardUI(r);
+                        // Update Global Settings (Logo, Favicon, WA, etc)
+                        if(r.data.settings) {
+                            applyGlobalSettings(r.data.settings);
+                            // Update juga cache global settings terpisah agar login page juga dapet update
+                            localStorage.setItem('melimpah_global_settings', JSON.stringify({ data: r.data.settings, time: Date.now() }));
+                        }
+                        renderDashboardUI(combinedData);
                     }
                 } else { 
-                    if(!cachedData) showToast('Gagal memuat data: ' + r.message, 'error'); 
+                    if(!cachedData) showToast('Gagal memuat data: ' + (r.message || 'Server Error'), 'error'); 
                 }
             } catch (err) { 
+                console.error(err);
                 if(!cachedData) showToast('Koneksi internet bermasalah.', 'error'); 
             }
         }
@@ -1022,11 +1025,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             window.location.href = 'login.html';
         }
 
-        window.onload = () => {
+        document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
             loadDashboard();
-            loadMyPages(); // Load user's landing pages
-        };
+            // loadMyPages() is now handled by loadDashboard via batch request
+        });
     </script>
     <!-- Password Modal -->
     <div id="modal-password" class="fixed inset-0 z-50 hidden">
@@ -1458,7 +1461,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         };
 
         // Initial Load
-        loadMyPages();
+        // loadMyPages() dipanggil di window.onload
     </script>
 </body>
 </html>
