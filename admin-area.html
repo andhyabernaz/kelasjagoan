@@ -182,6 +182,9 @@
                 <button onclick="switchTab('orders')" id="nav-orders" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
                 </button>
+                <button onclick="switchTab('members')" id="nav-members" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
+                    <i data-lucide="users" class="w-5 h-5"></i> Data Member
+                </button>
                 <button onclick="switchTab('products')" id="nav-products" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
                     <i data-lucide="package" class="w-5 h-5"></i> Produk & Layanan
                 </button>
@@ -274,6 +277,30 @@
                                     </tr>
                                 </thead>
                                 <tbody id="list-orders" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MEMBERS TAB -->
+                <div id="tab-members" class="tab-content">
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                            <h3 class="font-bold text-slate-700 text-lg">Data Member</h3>
+                        </div>
+                        <div class="overflow-x-auto custom-scroll">
+                            <table class="w-full text-left text-sm min-w-[700px]" id="list-members">
+                                <thead class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+                                    <tr>
+                                        <th class="px-8 py-5">ID Member</th>
+                                        <th class="px-8 py-5">Nama</th>
+                                        <th class="px-8 py-5">Email</th>
+                                        <th class="px-8 py-5">Role</th>
+                                        <th class="px-8 py-5">Status</th>
+                                        <th class="px-8 py-5">Tanggal Bergabung</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -678,7 +705,30 @@
             } 
         };
 
+        function renderMembers(members) {
+            const list = document.getElementById('list-members').getElementsByTagName('tbody')[0];
+            list.innerHTML = '';
+            members.forEach(m => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 transition-colors';
+                row.innerHTML = `
+                    <td class="px-8 py-5 font-mono font-bold text-indigo-600 text-xs">${m[0]}</td>
+                    <td class="px-8 py-5">
+                        <p class="font-bold text-slate-800 text-sm">${m[3]}</p>
+                    </td>
+                    <td class="px-8 py-5 text-sm text-slate-600">${m[1]}</td>
+                    <td class="px-8 py-5 text-sm text-slate-600">${m[4]}</td>
+                    <td class="px-8 py-5">
+                        <span class="px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold">${m[5]}</span>
+                    </td>
+                    <td class="px-8 py-5 text-sm text-slate-600">${m[6]}</td>
+                `;
+                list.appendChild(row);
+            });
+        }
+
         function renderAdminUI(r) {
+            renderMembers(r.users || []);
             cachedPages = r.pages || []; cachedProducts = r.products || [];
             document.getElementById('stat-orders').innerText = (r.stats.orders || 0) + ' Transaksi'; document.getElementById('stat-rev').innerText = 'Rp ' + Number(r.stats.rev || 0).toLocaleString('id-ID');
             document.getElementById('list-orders').innerHTML = r.orders.map(o => `
@@ -928,7 +978,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); 
             document.getElementById('tab-'+t).classList.add('active'); 
             document.getElementById('nav-'+t).classList.add('active'); 
-            const titles = { 'orders': 'Dashboard', 'products': 'Produk & Layanan', 'pages': 'Halaman CMS', 'media': 'Media Center', 'settings': 'Pengaturan Sistem' };
+            const titles = { 'orders': 'Dashboard', 'members': 'Data Member', 'products': 'Produk & Layanan', 'pages': 'Halaman CMS', 'media': 'Media Center', 'settings': 'Pengaturan Sistem' };
             document.getElementById('tab-title').innerText = titles[t] || 'Dashboard';
             lucide.createIcons();
             if(window.innerWidth < 768) toggleSidebar(); 

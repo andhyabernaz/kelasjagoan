@@ -651,7 +651,8 @@ function getAdminData(cfg) {
       orders: o.slice(1).reverse(),
       products: p.slice(1),
       pages: pg.slice(1),
-      settings: t
+      settings: t,
+      users: u.slice(1).reverse()
     };
   } catch (e) {
     return { status: "error", message: e.toString() };
