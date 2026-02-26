@@ -8,6 +8,7 @@
  * - Fix: Webhook in-memory status update (anti double-match)
  * - Improve: Cloudflare error message lebih informatif
  * - New: get_pages action for dashboard HTML download
+ * - New: Non-Aktifkan action (Lunas -> Pending status switch)
  */
 
 const ss = SpreadsheetApp.getActiveSpreadsheet();
