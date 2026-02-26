@@ -119,6 +119,7 @@ function doPost(e) {
       case "purge_cf_cache": return jsonRes(purgeCFCache(cfg));
       case "change_password": return jsonRes(changeUserPassword(data));
       case "update_profile": return jsonRes(updateUserProfile(data));
+      case "forgot_password": return jsonRes(forgotPassword(data));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar" });
     }
   } catch (err) {
@@ -968,5 +969,55 @@ function handleMootaWebhook(mutations, cfg) {
   } catch (e) {
     return ContentService.createTextOutput("ERROR: " + e.toString())
       .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+/* =========================
+   FORGOT PASSWORD
+========================= */
+function forgotPassword(d) {
+  try {
+    const s = mustSheet_("Users");
+    const r = s.getDataRange().getValues();
+    const email = String(d.email).trim().toLowerCase();
+    const cfg = getSettingsMap_();
+    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    
+    let found = false;
+    let nama = "";
+    let pass = "";
+    
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][1]).trim().toLowerCase() === email) {
+        pass = r[i][2];
+        nama = r[i][3];
+        found = true;
+        break;
+      }
+    }
+    
+    if (found) {
+        // Send Email
+        const subject = `Lupa Password - ${siteName}`;
+        const body = `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h3>Halo ${nama},</h3>
+            <p>Anda meminta untuk melihat password anda.</p>
+            <p>Berikut adalah detail login anda:</p>
+            <p><strong>Email:</strong> ${email}<br>
+            <strong>Password:</strong> ${pass}</p>
+            <p>Silakan login kembali dan segera ganti password anda jika perlu.</p>
+            <br>
+            <p>Salam,<br>Tim ${siteName}</p>
+          </div>
+        `;
+        
+        sendEmail(email, subject, body, cfg);
+        return { status: "success", message: "Password telah dikirim ke email anda." };
+    }
+    
+    return { status: "error", message: "Email tidak ditemukan." };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
   }
 }

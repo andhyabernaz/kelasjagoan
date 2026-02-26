@@ -153,7 +153,10 @@
                     </div>
                 </div>
                 <div class="space-y-2">
-                    <label class="ml-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                    <div class="flex items-center justify-between">
+                        <label class="ml-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                        <button type="button" onclick="document.getElementById('modal-forgot').classList.remove('hidden')" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">Lupa Password?</button>
+                    </div>
                     <div class="relative">
                         <i data-lucide="lock" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         <input type="password" id="pass" class="w-full pl-10 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-800" placeholder="••••••••" required>
@@ -172,6 +175,29 @@
         </div>
       </div>
     </main>
+
+    <!-- Modal Forgot Password -->
+    <div id="modal-forgot" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button onclick="document.getElementById('modal-forgot').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Lupa Password?</h3>
+            <p class="text-sm text-slate-500 mb-6">Masukkan email Anda. Kami akan mengirimkan password ke email yang terdaftar.</p>
+            
+            <form id="form-forgot" class="space-y-4">
+                <div class="relative">
+                    <i data-lucide="mail" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="email" id="email-forgot" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-800" placeholder="nama@email.com" required>
+                </div>
+                
+                <button type="submit" id="btn-forgot" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                    Kirim Password
+                </button>
+            </form>
+        </div>
+    </div>
 
     <script>
         function showToast(message, type = 'success') {
@@ -235,6 +261,33 @@
                 }
             } catch (err) { 
                 showToast('Gagal koneksi server!', 'error'); 
+                btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons({ root: btn });
+            }
+        };
+
+        document.getElementById('form-forgot').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-forgot');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Mengirim...'; btn.disabled = true; lucide.createIcons({ root: btn });
+
+            try {
+                if(typeof SCRIPT_URL === 'undefined') throw new Error("Config.js tidak terpanggil!");
+                const res = await fetch(SCRIPT_URL, { 
+                    method: 'POST', body: JSON.stringify({ action: 'forgot_password', email: document.getElementById('email-forgot').value })
+                });
+                const r = await res.json();
+                
+                if(r.status === 'success') {
+                    showToast(r.message, "success");
+                    document.getElementById('modal-forgot').classList.add('hidden');
+                    document.getElementById('email-forgot').value = '';
+                } else {
+                    showToast(r.message, "error");
+                }
+            } catch (err) {
+                showToast('Gagal koneksi server!', 'error');
+            } finally {
                 btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons({ root: btn });
             }
         };
