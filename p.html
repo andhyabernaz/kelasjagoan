@@ -78,16 +78,70 @@
         const urlParams = new URLSearchParams(window.location.search);
         const slug = urlParams.get('s');
 
+        function injectMetaPixel(pixelId) {
+            if(!pixelId) return;
+            if(window.fbq) return; // Prevent double injection
+
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            
+            fbq('init', pixelId);
+            fbq('track', 'PageView');
+
+            // Noscript fallback
+            const ns = document.createElement('noscript');
+            const img = document.createElement('img');
+            img.height = 1;
+            img.width = 1;
+            img.style.display = 'none';
+            img.src = `https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`;
+            ns.appendChild(img);
+            document.body.appendChild(ns);
+        }
+
         function renderHTML(data) {
             // Gunakan brandNameGlobal jika ada, kalau tidak fallback ke string kosong
             const brandSufix = window.brandNameGlobal ? ` - ${window.brandNameGlobal}` : '';
             document.title = data.title + brandSufix;
             
+            // Inject Pixel jika ada
+            if(data.pixel_id) {
+                injectMetaPixel(data.pixel_id);
+            }
+
             document.getElementById('loader').style.display = 'none';
             const container = document.getElementById('page-content');
-            container.classList.remove('hidden');
+            
+            // Fix: Pastikan konten di-set sebelum menghapus hidden agar layout stabil
             container.innerHTML = data.content; 
-            lucide.createIcons();
+            container.classList.remove('hidden');
+            
+            // Re-init Icons
+            if(window.lucide) lucide.createIcons();
+            
+            // Fix: Jalankan script jika ada di dalam konten (hati-hati, tapi diperlukan untuk widget/embed)
+            const scripts = container.getElementsByTagName('script');
+            for(let i=0; i<scripts.length; i++) {
+                try {
+                    if(scripts[i].src) {
+                        const s = document.createElement('script');
+                        s.src = scripts[i].src;
+                        s.async = true;
+                        document.body.appendChild(s);
+                    } else {
+                        // Gunakan Function constructor daripada eval untuk scope yang lebih aman (sedikit)
+                        new Function(scripts[i].innerHTML)();
+                    }
+                } catch(e) {
+                    console.error("Custom Script Error:", e);
+                }
+            }
         }
 
         // --> FUNGSI LOADING SAT SET (Optimistic UI & Background Sync)

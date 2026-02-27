@@ -712,7 +712,16 @@ function getPageContent(d) {
   try {
     const r = mustSheet_("Pages").getDataRange().getValues();
     for (let i = 1; i < r.length; i++) {
-      if (String(r[i][1]) === String(d.slug)) return { status: "success", title: r[i][2], content: r[i][3] };
+      if (String(r[i][1]) === String(d.slug)) {
+          return { 
+              status: "success", 
+              title: r[i][2], 
+              content: r[i][3],
+              pixel_id: r[i][7] || "",
+              pixel_token: r[i][8] || "",
+              pixel_test_code: r[i][9] || ""
+          };
+      }
     }
     return { status: "error" };
   } catch (e) {
