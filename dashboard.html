@@ -9,7 +9,7 @@
             const CACHE_AGE = 60 * 60 * 1000; 
             window.waAdminGlobal = '';
 
-            function applyGlobalSettings(data) {
+            window.applyGlobalSettings = function(data) {
                 if(data.site_favicon) {
                     let link = document.querySelector("link[rel~='icon']");
                     if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
