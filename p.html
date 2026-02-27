@@ -122,6 +122,16 @@
             container.innerHTML = data.content; 
             container.classList.remove('hidden');
             
+            // Apply Theme Mode
+            if (data.theme_mode === 'dark') {
+                document.body.classList.remove('bg-white', 'text-slate-800');
+                document.body.classList.add('bg-slate-900', 'text-slate-100');
+            } else {
+                // Default Light
+                document.body.classList.remove('bg-slate-900', 'text-slate-100');
+                document.body.classList.add('bg-white', 'text-slate-800');
+            }
+            
             // Re-init Icons
             if(window.lucide) lucide.createIcons();
             

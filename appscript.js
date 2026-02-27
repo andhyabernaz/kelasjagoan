@@ -719,7 +719,8 @@ function getPageContent(d) {
               content: r[i][3],
               pixel_id: r[i][7] || "",
               pixel_token: r[i][8] || "",
-              pixel_test_code: r[i][9] || ""
+              pixel_test_code: r[i][9] || "",
+              theme_mode: r[i][10] || "light"
           };
       }
     }
@@ -879,7 +880,7 @@ function savePage(d) {
 
     // Check if columns exist
     const maxCols = s.getMaxColumns();
-    if (maxCols < 10) s.insertColumnsAfter(maxCols, 10 - maxCols);
+    if (maxCols < 11) s.insertColumnsAfter(maxCols, 11 - maxCols);
 
     if (isEdit) {
       for (let i = 1; i < r.length; i++) {
@@ -892,16 +893,16 @@ function savePage(d) {
            }
 
           s.getRange(i + 1, 1, 1, 4).setValues([[d.id, slug, d.title, d.content]]);
-          // Update Meta Pixel Columns (Col 8, 9, 10)
-          s.getRange(i + 1, 8, 1, 3).setValues([[d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || ""]]);
+          // Update Meta Pixel Columns (Col 8, 9, 10) + Theme Mode (Col 11)
+          s.getRange(i + 1, 8, 1, 4).setValues([[d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || "", d.theme_mode || "light"]]);
           return { status: "success" };
         }
       }
       return { status: "error", message: "ID Halaman tidak ditemukan" };
     } else {
       const newId = "PG-" + Date.now();
-      // Tambahkan Owner ID di kolom ke-7 (index 6) + Meta Pixel (7,8,9)
-      s.appendRow([newId, slug, d.title, d.content, "Active", toISODate_(), ownerId, d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || ""]);
+      // Tambahkan Owner ID di kolom ke-7 (index 6) + Meta Pixel (7,8,9) + Theme Mode (10)
+      s.appendRow([newId, slug, d.title, d.content, "Active", toISODate_(), ownerId, d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || "", d.theme_mode || "light"]);
       return { status: "success" };
     }
   } catch (e) {
