@@ -62,6 +62,10 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
         .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         /* Hilangkan panah naik-turun di input number */
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
@@ -69,11 +73,11 @@
 
         /* CUSTOM TOAST CSS */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
-        .toast { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); max-width: 350px; line-height: 1.4; pointer-events: auto;}
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background-color: #10b981; }
-        .toast.error { background-color: #ef4444; }
-        .toast.warning { background-color: #f59e0b; }
+        .toast { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 16px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); max-width: 380px; line-height: 1.5; pointer-events: auto; backdrop-filter: blur(8px);}
+        .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+        .toast.success { background: rgba(16, 185, 129, 0.95); border: 1px solid rgba(255,255,255,0.1); }
+        .toast.error { background: rgba(239, 68, 68, 0.95); border: 1px solid rgba(255,255,255,0.1); }
+        .toast.warning { background: rgba(245, 158, 11, 0.95); border: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
 <body class="bg-white text-slate-900 min-h-screen">
@@ -152,53 +156,70 @@
                         
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nama Lengkap</label>
-                            <input type="text" id="cust-name" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 rounded-xl p-4 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-medium" placeholder="Contoh: Budi Santoso" required>
+                            <div class="relative group">
+                                <input type="text" id="cust-name" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-12 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="Nama Lengkap Anda" required>
+                                <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Alamat Email</label>
-                            <input type="email" id="cust-email" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 rounded-xl p-4 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-medium" placeholder="email@anda.com" required>
+                            <div class="relative group">
+                                <input type="email" id="cust-email" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-12 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="email@aktif.com" required>
+                                <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nomor WhatsApp</label>
-                            <div class="relative">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 border-r border-slate-300 pr-3">+62</span>
-                                <input type="number" id="cust-wa" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 rounded-xl p-4 pl-16 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-medium" placeholder="8123xxxxxxx" required>
+                            <div class="relative group">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 border-r-2 border-slate-200 pr-3 group-focus-within:text-indigo-500 group-focus-within:border-indigo-100 transition-colors">+62</span>
+                                <input type="tel" id="cust-wa" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-20 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="8123xxxxxxx" required pattern="[0-9]*" inputmode="numeric">
+                                <i data-lucide="smartphone" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-indigo-500 transition-colors"></i>
                             </div>
                         </div>
 
                         <!-- PAYMENT METHOD SELECTION -->
-                        <div id="payment-method-section" class="hidden">
+                        <div id="payment-method-section" class="hidden animate-fade-in-up">
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Metode Pembayaran</label>
-                            <div class="space-y-3">
+                            <div class="grid grid-cols-1 gap-3">
                                 <!-- BANK TRANSFER (DEFAULT) -->
-                                <label class="relative flex items-center p-4 border rounded-xl cursor-pointer transition-all border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600" id="opt-bank">
-                                    <input type="radio" name="payment_method" value="bank" class="hidden" checked onchange="selectPayment('bank')">
-                                    <div class="w-5 h-5 rounded-full border border-indigo-600 bg-white flex items-center justify-center mr-3">
-                                        <div class="w-3 h-3 rounded-full bg-indigo-600"></div>
+                                <label class="group relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 border-indigo-600 bg-indigo-50/50 shadow-sm hover:shadow-md" id="opt-bank">
+                                    <input type="radio" name="payment_method" value="bank" class="peer sr-only" checked onchange="selectPayment('bank')">
+                                    <div class="flex-shrink-0 mt-0.5 mr-3">
+                                        <div class="w-5 h-5 rounded-full border-2 border-indigo-600 bg-white flex items-center justify-center peer-checked:bg-indigo-600 transition-colors">
+                                            <div class="w-2.5 h-2.5 rounded-full bg-indigo-600 peer-checked:bg-white transition-colors"></div>
+                                        </div>
                                     </div>
                                     <div class="flex-1">
-                                        <span class="block text-sm font-bold text-slate-900">Transfer Bank (Manual)</span>
-                                        <span class="block text-[10px] text-slate-500 font-medium">Cek Manual via WhatsApp Admin</span>
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors">Transfer Bank (Manual)</span>
+                                            <i data-lucide="arrow-left-right" class="w-4 h-4 text-indigo-400"></i>
+                                        </div>
+                                        <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi manual via WhatsApp Admin. Cocok untuk yang tidak memiliki E-Wallet/QRIS.</span>
                                     </div>
-                                    <i data-lucide="arrow-left-right" class="w-5 h-5 text-slate-400"></i>
+                                    <div class="absolute inset-0 border-2 border-indigo-600 rounded-xl pointer-events-none opacity-100 transition-opacity"></div>
                                 </label>
 
                                 <!-- DUITKU (AUTO) -->
-                                <label class="relative flex items-center p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" id="opt-duitku">
-                                    <input type="radio" name="payment_method" value="duitku" class="hidden" onchange="selectPayment('duitku')">
-                                    <div class="w-5 h-5 rounded-full border border-slate-300 bg-white flex items-center justify-center mr-3">
-                                        <div class="w-3 h-3 rounded-full bg-transparent"></div>
+                                <label class="group relative flex items-start p-4 border-2 border-slate-100 rounded-xl cursor-pointer hover:border-slate-200 hover:bg-slate-50 transition-all duration-200" id="opt-duitku">
+                                    <input type="radio" name="payment_method" value="duitku" class="peer sr-only" onchange="selectPayment('duitku')">
+                                    <div class="flex-shrink-0 mt-0.5 mr-3">
+                                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center peer-checked:border-indigo-600 peer-checked:bg-indigo-600 transition-colors">
+                                            <div class="w-2.5 h-2.5 rounded-full bg-transparent peer-checked:bg-white transition-colors"></div>
+                                        </div>
                                     </div>
                                     <div class="flex-1">
-                                        <span class="block text-sm font-bold text-slate-900">QRIS / Virtual Account (Otomatis)</span>
-                                        <span class="block text-[10px] text-slate-500 font-medium">Verifikasi Instan 24 Jam</span>
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors">QRIS / Virtual Account (Otomatis)</span>
+                                            <div class="flex gap-1">
+                                                <i data-lucide="qr-code" class="w-4 h-4 text-slate-400"></i>
+                                                <i data-lucide="zap" class="w-4 h-4 text-amber-500 fill-amber-500"></i>
+                                            </div>
+                                        </div>
+                                        <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi Instan 24 Jam. Mendukung QRIS, ShopeePay, OVO, Dana, LinkAja & Semua Bank.</span>
                                     </div>
-                                    <div class="flex gap-1">
-                                        <i data-lucide="qr-code" class="w-5 h-5 text-slate-400"></i>
-                                        <i data-lucide="zap" class="w-5 h-5 text-amber-500 fill-amber-500"></i>
-                                    </div>
+                                    <div class="absolute inset-0 border-2 border-indigo-600 rounded-xl pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"></div>
                                 </label>
                             </div>
                         </div>
@@ -303,29 +324,8 @@
 
         function selectPayment(method) {
             selectedPayment = method;
-            const radios = document.querySelectorAll('input[name="payment_method"]');
-            radios.forEach(el => {
-                if(el.value === method) el.checked = true;
-                const parent = el.parentElement;
-                const circle = parent.querySelector('.rounded-full');
-                const dot = circle.querySelector('div');
-
-                if(el.value === method) {
-                    parent.classList.add('border-indigo-600', 'bg-indigo-50', 'ring-1', 'ring-indigo-600');
-                    parent.classList.remove('border-slate-200');
-                    circle.classList.add('border-indigo-600');
-                    circle.classList.remove('border-slate-300');
-                    dot.classList.add('bg-indigo-600');
-                    dot.classList.remove('bg-transparent');
-                } else {
-                    parent.classList.remove('border-indigo-600', 'bg-indigo-50', 'ring-1', 'ring-indigo-600');
-                    parent.classList.add('border-slate-200');
-                    circle.classList.remove('border-indigo-600');
-                    circle.classList.add('border-slate-300');
-                    dot.classList.remove('bg-indigo-600');
-                    dot.classList.add('bg-transparent');
-                }
-            });
+            const radio = document.querySelector(`input[name="payment_method"][value="${method}"]`);
+            if(radio) radio.checked = true;
         }
 
         function renderCheckoutUI(r) {
@@ -540,14 +540,48 @@
             }
         };
 
+        // --- INPUT FORMATTING & VALIDATION ---
+        document.getElementById('cust-wa').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
         function copyRek() {
-            navigator.clipboard.writeText(sysPayment.bank_norek);
-            showToast("Nomor rekening tersalin ke clipboard!", "success");
+            if(!sysPayment.bank_norek) return;
+            navigator.clipboard.writeText(sysPayment.bank_norek).then(() => {
+                showToast("Nomor rekening tersalin!", "success");
+                const btn = document.querySelector('button[onclick="copyRek()"]');
+                const originalText = btn.innerText;
+                btn.innerText = "TERSALIN!";
+                btn.classList.add('bg-emerald-50', 'text-emerald-600');
+                btn.classList.remove('text-indigo-600', 'bg-indigo-50');
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('bg-emerald-50', 'text-emerald-600');
+                    btn.classList.add('text-indigo-600', 'bg-indigo-50');
+                }, 2000);
+            }).catch(err => {
+                showToast("Gagal menyalin text", "error");
+            });
         }
 
         window.onload = () => {
             lucide.createIcons();
             loadProduct();
+            
+            // AUTO-FILL IF LOGGED IN
+            try {
+                const userData = JSON.parse(sessionStorage.getItem('user_data'));
+                if(userData) {
+                    if(document.getElementById('cust-name')) document.getElementById('cust-name').value = userData.nama || '';
+                    if(document.getElementById('cust-email')) document.getElementById('cust-email').value = userData.email || '';
+                    if(document.getElementById('cust-wa') && userData.whatsapp) {
+                        // Remove 62 prefix if exists to fit input placeholder style
+                        let wa = userData.whatsapp.toString();
+                        if(wa.startsWith('62')) wa = wa.substring(2);
+                        document.getElementById('cust-wa').value = wa;
+                    }
+                }
+            } catch(e) {}
         };
     </script>
 </body>
