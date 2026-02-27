@@ -684,22 +684,23 @@
         let bioLinkLoaded = false;
         async function loadBioLinkData() {
             // Generate Bio Link URL
-            // Default to safe parameter-based URL, but can use cleaner URL if 404/rewrite is active
-            // User requested: site_url/user_id
-            let baseUrl = window.location.href;
-            if (baseUrl.includes('/dashboard.html')) {
-                baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
-            } else if (baseUrl.endsWith('/')) {
-                baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-            }
+            // User requested: site_url/bio.html?u=user_id
+            let path = window.location.pathname;
+            // Remove 'dashboard.html' or 'dashboard' from the end of the path
+            path = path.replace(/\/dashboard(\.html)?\/?$/, '');
+            // Remove trailing slash if path is not empty
+            if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
+            if (path === '/') path = ''; // Ensure root path is empty string for cleaner concatenation
             
-            // Prefer cleaner URL for display
-            const bioUrl = `${baseUrl}/${userId}`;
-            const bioUrlSafe = `${baseUrl}/bio.html?u=${userId}`;
+            const baseUrl = window.location.origin + path;
+            
+            // Construct correct bio URL
+            // Example: https://kelasjagoan.my.id/bio.html?u=USR-123
+            const bioUrl = `${baseUrl}/bio.html?u=${userId}`;
             
             // Update UI
             document.getElementById('bio-url-preview').innerText = bioUrl;
-            document.getElementById('btn-view-bio').href = bioUrlSafe; // Use safe link for button to ensure it works immediately
+            document.getElementById('btn-view-bio').href = bioUrl;
             
             if (bioLinkLoaded) return;
             
