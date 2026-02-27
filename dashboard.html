@@ -765,7 +765,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             if (r.available && r.available.length > 0) {
                 // Render Product Catalog
                 availableContainer.innerHTML = r.available.reverse().map(p => {
-                    const targetLink = (p.lp_url && p.lp_url !== "") ? p.lp_url : `checkout.html?id=${p.id}`;
+                    const targetLink = `checkout.html?id=${p.id}`; // Always direct to checkout for logged-in users
                     return `
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full fade-in-up group relative overflow-hidden">
                         <div class="relative z-10 flex flex-col h-full">
