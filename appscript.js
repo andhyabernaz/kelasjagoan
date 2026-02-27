@@ -628,7 +628,21 @@ function getProducts(d, cfg, cachedOrders) {
   const rules = mustSheet_("Access_Rules").getDataRange().getValues();
   const orders = cachedOrders || mustSheet_("Orders").getDataRange().getValues();
   const users = mustSheet_("Users").getDataRange().getValues();
-  const email = String(d.email || "").trim().toLowerCase();
+  
+  let email = String(d.email || "").trim().toLowerCase();
+  let targetMode = false;
+
+  // Support fetching products for a specific user (Bio Page)
+  if (d.target_user_id) {
+      targetMode = true;
+      const tUid = String(d.target_user_id).trim();
+      for (let j = 1; j < users.length; j++) {
+          if (String(users[j][0]) === tUid) {
+              email = String(users[j][1]).trim().toLowerCase();
+              break;
+          }
+      }
+  }
 
   let lunasIds = [], totalKomisi = 0, uId = "";
   let partners = [];
@@ -641,11 +655,10 @@ function getProducts(d, cfg, cachedOrders) {
       const r = orders[x];
       if (String(r[1]).toLowerCase() === email && String(r[7]) === "Lunas") lunasIds.push(String(r[4]));
       
-      // Check for Partners (Referrals)
-      if (String(r[9]) === uId) {
+      // Check for Partners (Referrals) - Only calculate if not in target mode (optional, but keeps it clean)
+      if (!targetMode && String(r[9]) === uId) {
           if (String(r[7]) === "Lunas") totalKomisi += Number(r[10] || 0);
           
-          // Add to partner list
           partners.push({
               invoice: r[0],
               name: r[2],
@@ -674,8 +687,15 @@ function getProducts(d, cfg, cachedOrders) {
         image_url: rules[i][7] || "",
         commission: rules[i][11] || 0
       };
-      if (hasAccess && email) owned.push(pObj);
-      else available.push(pObj);
+      
+      if (targetMode) {
+          // In Bio Page mode, we show what the user OWNS as the "Available Catalog" for visitors
+          if (hasAccess) available.push(pObj);
+      } else {
+          // Normal Dashboard mode
+          if (hasAccess && email) owned.push(pObj);
+          else available.push(pObj);
+      }
     }
   }
 

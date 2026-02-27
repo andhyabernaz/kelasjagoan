@@ -190,7 +190,7 @@
                 document.getElementById('profile-img').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.display_name || 'User')}&background=random&size=128`;
             }
 
-            renderSocials(data.wa, data.email, data.socials_json);
+            renderSocials(data.wa, data.email, data.socials);
         }
 
         function renderGlobalProfile(data) {
@@ -214,7 +214,7 @@
             
             // WA
             if (wa) {
-                const waNum = wa.replace(/[^0-9]/g, '');
+                const waNum = String(wa).replace(/[^0-9]/g, '');
                 const waLink = `https://wa.me/${waNum.startsWith('0') ? '62'+waNum.slice(1) : waNum}`;
                 socialContainer.innerHTML += renderSocialIcon('message-circle', waLink, 'emerald');
             }
@@ -227,7 +227,11 @@
             // Other Socials
             if (socialsJson) {
                 let socials = {};
-                try { socials = JSON.parse(socialsJson); } catch(e){}
+                if (typeof socialsJson === 'object' && socialsJson !== null) {
+                    socials = socialsJson;
+                } else {
+                    try { socials = JSON.parse(socialsJson); } catch(e){}
+                }
                 
                 if (socials.fb) socialContainer.innerHTML += renderSocialIcon('facebook', socials.fb, 'blue');
                 if (socials.ig) socialContainer.innerHTML += renderSocialIcon('instagram', socials.ig, 'pink');
@@ -256,15 +260,18 @@
                 renderProductList(c.data);
             }
             
+            // Pass target_user_id so backend returns ONLY products owned by this user
             fetch(SCRIPT_URL, { 
                 method: 'POST', 
-                body: JSON.stringify({ action: 'get_products', aff_id: refId }) 
+                body: JSON.stringify({ action: 'get_products', target_user_id: userId }) 
             })
             .then(r => r.json())
             .then(d => {
                 if (d.status === 'success') {
-                    localStorage.setItem(CACHE_PRODUCTS, JSON.stringify({ data: d.data, time: Date.now() }));
-                    renderProductList(d.data);
+                    // Backend now returns the user's owned products in 'available' array when target_user_id is set
+                    const products = d.available || []; 
+                    localStorage.setItem(CACHE_PRODUCTS, JSON.stringify({ data: products, time: Date.now() }));
+                    renderProductList(products);
                 }
             });
         }
@@ -292,10 +299,16 @@
                 let link = p.lp_url ? p.lp_url : `checkout.html?id=${p.id}`;
                 
                 // Add ref param if it's not already there
-                if (refId) {
+                // ALWAYS use current bio userId if available, otherwise use refId from URL
+                const currentRef = userId || refId;
+                
+                if (currentRef) {
                     const separator = link.includes('?') ? '&' : '?';
-                    if (!link.includes('ref=')) {
-                         link += `${separator}ref=${refId}`;
+                    // Use RegExp to replace existing ref parameter or append new one
+                    if (link.match(/([?&])ref=[^&]*/)) {
+                        link = link.replace(/([?&])ref=[^&]*/, `$1ref=${currentRef}`);
+                    } else {
+                        link += `${separator}ref=${currentRef}`;
                     }
                 }
 
