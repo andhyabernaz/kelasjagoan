@@ -550,10 +550,10 @@ function getProductDetail(d, cfg) {
 /* =========================
    GET PRODUCTS + KOMISI AFFILIATE
 ========================= */
-function getProducts(d, cfg) {
+function getProducts(d, cfg, cachedOrders) {
   cfg = cfg || getSettingsMap_();
   const rules = mustSheet_("Access_Rules").getDataRange().getValues();
-  const orders = mustSheet_("Orders").getDataRange().getValues();
+  const orders = cachedOrders || mustSheet_("Orders").getDataRange().getValues();
   const users = mustSheet_("Users").getDataRange().getValues();
   const email = String(d.email || "").trim().toLowerCase();
 
@@ -612,21 +612,46 @@ function getDashboardData(d) {
   try {
     const cfg = getSettingsMap_();
     
-    // 1. Get User ID from Email (Efficient Lookup)
+    // 1. Get User ID & Admin ID from Users Sheet
     const email = String(d.email || "").trim().toLowerCase();
     const users = mustSheet_("Users").getDataRange().getValues();
     let userId = "";
     let userNama = "";
+    let adminId = "";
+    
     for(let i=1; i<users.length; i++) {
+        // Check for Admin (fallback upline)
+        if(String(users[i][4]).toLowerCase() === "admin" && !adminId) {
+            adminId = String(users[i][0]);
+        }
+        // Check for Current User
         if(String(users[i][1]).toLowerCase() === email) {
             userId = String(users[i][0]);
             userNama = String(users[i][3]);
-            break;
         }
     }
     
-    // 2. Get Products (reuse existing logic)
-    const productsData = getProducts(d, cfg);
+    // 1b. Find Upline (Sponsor) from Orders History
+    let uplineId = "";
+    const orders = mustSheet_("Orders").getDataRange().getValues();
+    
+    if(userId) {
+        // Search from oldest order (top) to find the first referrer
+        for(let k=1; k<orders.length; k++) {
+             if(String(orders[k][1]).toLowerCase() === email) {
+                 const aff = String(orders[k][9] || "").trim();
+                 if(aff && aff !== "-" && aff !== "" && aff !== "GUEST") {
+                     uplineId = aff;
+                     break; // Found the first sponsor
+                 }
+             }
+        }
+    }
+    // Default to Admin if no upline found
+    if(!uplineId) uplineId = adminId;
+    
+    // 2. Get Products (reuse existing logic + pass cached orders)
+    const productsData = getProducts(d, cfg, orders);
     
     // 3. Get Global Pages (Affiliate Tools - ADMIN owned)
     const globalPages = getAllPages({ ...d, owner_id: "" });
@@ -640,7 +665,7 @@ function getDashboardData(d) {
     return {
       status: "success",
       data: {
-        user: { id: userId, nama: userNama },
+        user: { id: userId, nama: userNama, upline_id: uplineId },
         settings: { 
             site_name: getCfgFrom_(cfg, "site_name"),
             site_logo: getCfgFrom_(cfg, "site_logo"),

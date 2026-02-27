@@ -764,8 +764,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             const availableContainer = document.getElementById('list-available');
             if (r.available && r.available.length > 0) {
                 // Render Product Catalog
-                availableContainer.innerHTML = r.available.reverse().map(p => {
-                    const targetLink = `checkout.html?id=${p.id}`; // Always direct to checkout for logged-in users
+                const uplineRef = (r.user && r.user.upline_id) ? r.user.upline_id : '';
+                
+                // Use slice() to create a copy before reversing to avoid mutating the original array (and cache)
+                availableContainer.innerHTML = r.available.slice().reverse().map(p => {
+                    const targetLink = `checkout.html?id=${p.id}${uplineRef ? '&ref='+uplineRef : ''}`; // Direct checkout with Upline Ref
                     return `
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full fade-in-up group relative overflow-hidden">
                         <div class="relative z-10 flex flex-col h-full">
@@ -900,7 +903,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                     const combinedData = {
                         ...r.data.products, // owned, available, partners, total_komisi
                         pages: r.data.pages,
-                        settings: r.data.settings
+                        settings: r.data.settings,
+                        user: r.data.user // Include user data (id, nama, upline_id)
                     };
 
                     const freshData = JSON.stringify(combinedData);
