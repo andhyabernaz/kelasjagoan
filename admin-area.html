@@ -567,6 +567,28 @@
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Link Akses Materi</label>
                     <input type="text" id="p-url" placeholder="https://..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium" required>
                 </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="activity" class="w-4 h-4 text-indigo-500"></i>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Konfigurasi Meta Pixel</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Pixel ID</label>
+                            <input type="text" id="p-pixel-id" placeholder="Ex: 123456789" class="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-xs font-mono transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Access Token</label>
+                            <input type="text" id="p-pixel-token" placeholder="Ex: EAA..." class="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-xs font-mono transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-1 block">Test Event Code</label>
+                            <input type="text" id="p-pixel-test" placeholder="Ex: TEST1234" class="w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-xs font-mono transition-all">
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Deskripsi Singkat</label>
                     <textarea id="p-desc" placeholder="Deskripsi untuk ditampilkan di katalog..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none h-24 font-medium text-sm focus:border-indigo-500 transition-all"></textarea>
@@ -1003,6 +1025,12 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             const imgUrl = p[7] || "";
             document.getElementById('p-image').value = imgUrl;
             updateProdPreview(imgUrl);
+            
+            // Meta Pixel
+            document.getElementById('p-pixel-id').value = p[8] || '';
+            document.getElementById('p-pixel-token').value = p[9] || '';
+            document.getElementById('p-pixel-test').value = p[10] || '';
+
             document.getElementById('p-is-edit').value = 'true'; 
             document.getElementById('modal-prod').classList.remove('hidden'); 
         }
@@ -1215,6 +1243,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 harga: document.getElementById('p-harga').value, 
                 lp_url: document.getElementById('p-lp').value,
                 image_url: document.getElementById('p-image').value, 
+                pixel_id: document.getElementById('p-pixel-id').value,
+                pixel_token: document.getElementById('p-pixel-token').value,
+                pixel_test_code: document.getElementById('p-pixel-test').value,
                 status: 'Active', 
                 is_edit: document.getElementById('p-is-edit').value === 'true' 
             }; 

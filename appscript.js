@@ -521,7 +521,15 @@ function getProductDetail(d, cfg) {
 
     for (let i = 1; i < rules.length; i++) {
       if (String(rules[i][0]) === pId && String(rules[i][5]).trim() === "Active") {
-        productData = { id: pId, title: rules[i][1], desc: rules[i][2], harga: rules[i][4] };
+        productData = { 
+            id: pId, 
+            title: rules[i][1], 
+            desc: rules[i][2], 
+            harga: rules[i][4],
+            pixel_id: rules[i][8] || "",
+            pixel_token: rules[i][9] || "",
+            pixel_test_code: rules[i][10] || ""
+        };
         break;
       }
     }
@@ -532,7 +540,10 @@ function getProductDetail(d, cfg) {
       bank_norek: getCfgFrom_(cfg, "bank_norek"),
       bank_owner: getCfgFrom_(cfg, "bank_owner"),
       wa_admin: getCfgFrom_(cfg, "wa_admin"),
-      duitku_active: !!getCfgFrom_(cfg, "duitku_merchant_code")
+      duitku_active: !!getCfgFrom_(cfg, "duitku_merchant_code"),
+      pixel_id: productData.pixel_id, // Pass pixel_id to frontend
+      pixel_token: productData.pixel_token,
+      pixel_test_code: productData.pixel_test_code
     };
 
     let affName = "";
@@ -812,17 +823,17 @@ function saveProduct(d) {
   try {
     const s = mustSheet_("Access_Rules");
     
-    // Ensure we have enough columns (8 columns needed)
-    if (s.getMaxColumns() < 8) s.insertColumnsAfter(s.getMaxColumns(), 8 - s.getMaxColumns());
+    // Ensure we have enough columns (11 columns needed)
+    if (s.getMaxColumns() < 11) s.insertColumnsAfter(s.getMaxColumns(), 11 - s.getMaxColumns());
     
-    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url];
+    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url, d.pixel_id, d.pixel_token, d.pixel_test_code];
     const isEdit = String(d.is_edit) === "true";
 
     if (isEdit) {
       const r = s.getDataRange().getValues();
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][0]).trim() === String(d.id).trim()) {
-          s.getRange(i + 1, 1, 1, 8).setValues([dataRow]);
+          s.getRange(i + 1, 1, 1, 11).setValues([dataRow]);
           return { status: "success" };
         }
       }

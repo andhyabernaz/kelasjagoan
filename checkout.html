@@ -474,7 +474,14 @@
             e.preventDefault();
             
             // PIXEL INITIATE CHECKOUT
-            if(typeof fbq === 'function') fbq('track', 'InitiateCheckout');
+            if(typeof fbq === 'function') {
+                fbq('track', 'InitiateCheckout', {
+                    content_ids: [document.getElementById('prod-id').value],
+                    content_type: 'product',
+                    value: document.getElementById('prod-price').value,
+                    currency: 'IDR'
+                });
+            }
 
             const btn = document.getElementById('btn-submit'); 
             const originalHTML = btn.innerHTML;
