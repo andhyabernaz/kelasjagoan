@@ -1236,7 +1236,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                     </div>
                     <div>
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Slug URL</label>
-                        <input type="text" id="pg-slug" placeholder="slug-halaman" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required>
+                        <input type="text" id="pg-slug" placeholder="slug-halaman" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold transition-all" required onblur="checkSlugAvailability(this)">
+                        <p id="slug-feedback" class="text-xs font-medium mt-2 hidden"></p>
                     </div>
                     <div class="sm:col-span-2">
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Tema Halaman</label>
@@ -1372,6 +1373,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         function openPageModal() {
             document.getElementById('form-page').reset();
             document.getElementById('pg-is-edit').value = 'false';
+            document.getElementById('slug-feedback').textContent = '';
+            document.getElementById('slug-feedback').classList.add('hidden');
             document.getElementById('modal-page').classList.remove('hidden');
         }
 
@@ -1379,10 +1382,61 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.getElementById(id).classList.add('hidden');
         }
 
+        async function checkSlugAvailability(input) {
+            const slug = input.value.trim();
+            const feedback = document.getElementById('slug-feedback');
+            const btn = document.getElementById('form-page').querySelector('button[type="submit"]');
+            
+            if (!slug) {
+                feedback.classList.add('hidden');
+                btn.disabled = false;
+                return;
+            }
+
+            feedback.textContent = 'Memeriksa ketersediaan...';
+            feedback.className = 'text-xs font-medium mt-2 text-slate-400 block';
+            btn.disabled = true;
+
+            try {
+                const id = document.getElementById('pg-id').value; // For edit mode exclude
+                const isEdit = document.getElementById('pg-is-edit').value === 'true';
+                
+                const payload = { 
+                    action: 'check_slug', 
+                    slug: slug,
+                    exclude_id: isEdit ? id : ''
+                };
+
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const r = await res.json();
+
+                if (r.status === 'success' && r.available) {
+                    feedback.textContent = 'Slug URL tersedia ✅';
+                    feedback.className = 'text-xs font-medium mt-2 text-emerald-600 block';
+                    btn.disabled = false;
+                    btn.innerText = isEdit ? 'SIMPAN PERUBAHAN' : 'BUAT HALAMAN';
+                } else {
+                    feedback.textContent = 'Slug URL sudah digunakan ❌';
+                    feedback.className = 'text-xs font-medium mt-2 text-rose-600 block';
+                    btn.disabled = true; // Prevent submit
+                }
+            } catch (e) {
+                feedback.textContent = 'Gagal memeriksa slug';
+                feedback.className = 'text-xs font-medium mt-2 text-amber-600 block';
+                btn.disabled = false; // Let server handle it if check fails
+            }
+        }
+
         function editPage(id) {
             if (!window.myCachedPages) return;
             const p = window.myCachedPages.find(x => x[0] === id);
             if(!p) return;
+            
+            document.getElementById('slug-feedback').textContent = '';
+            document.getElementById('slug-feedback').classList.add('hidden');
             
             document.getElementById('pg-id').value = p[0];
             document.getElementById('pg-slug').value = p[1];
@@ -1412,6 +1466,40 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             showToast('Link halaman disalin!', 'success');
         }
 
+        function deletePage(id) {
+            if(!confirm('Apakah Anda yakin ingin menghapus halaman ini? Tindakan ini tidak dapat dibatalkan.')) return;
+            
+            const userId = sessionStorage.getItem('user_id');
+            const btn = document.querySelector(`button[onclick="deletePage('${id}')"]`);
+            if(btn) btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
+            lucide.createIcons();
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'delete_page', id: id, owner_id: userId })
+            })
+            .then(res => res.json())
+            .then(r => {
+                if(r.status === 'success') {
+                    showToast('Halaman berhasil dihapus', 'success');
+                    loadMyPages();
+                } else {
+                    showToast(r.message || 'Gagal menghapus halaman', 'error');
+                    if(btn) {
+                        btn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
+                        lucide.createIcons();
+                    }
+                }
+            })
+            .catch(e => {
+                showToast('Gagal koneksi: ' + e.toString(), 'error');
+                if(btn) {
+                    btn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
+                    lucide.createIcons();
+                }
+            });
+        }
+
         // Render User Pages
         function renderMyPages(pages) {
             window.myCachedPages = pages; // Cache for edit lookup
@@ -1435,6 +1523,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                                 </button>
                                 <button onclick="downloadPageHTML('${p[1]}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Download HTML">
                                     <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deletePage('${p[0]}')" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
                         </td>

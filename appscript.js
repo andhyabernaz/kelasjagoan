@@ -139,6 +139,8 @@ function doPost(e) {
       case "normalize_users": return jsonRes(normalizeUsersSheet());
       case "create_duitku_payment": return jsonRes(createDuitkuPayment(data, cfg));
       case "delete_product": return jsonRes(deleteProduct(data));
+      case "delete_page": return jsonRes(deletePage(data));
+      case "check_slug": return jsonRes(checkSlug(data));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar: " + (action || "unknown") });
     }
   } catch (err) {
@@ -905,6 +907,56 @@ function savePage(d) {
       s.appendRow([newId, slug, d.title, d.content, "Active", toISODate_(), ownerId, d.meta_pixel_id || "", d.meta_pixel_token || "", d.meta_pixel_test_event || "", d.theme_mode || "light"]);
       return { status: "success" };
     }
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function deletePage(d) {
+  try {
+    const s = mustSheet_("Pages");
+    const id = String(d.id).trim();
+    const ownerId = String(d.owner_id || "ADMIN").trim();
+
+    const r = s.getDataRange().getValues();
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][0]).trim() === id) {
+        // Security Check: Only Owner or Admin can delete
+        const pageOwner = String(r[i][6] || "ADMIN").trim();
+        if (pageOwner !== ownerId && ownerId !== "ADMIN") {
+            return { status: "error", message: "Anda tidak memiliki izin menghapus halaman ini." };
+        }
+        
+        s.deleteRow(i + 1);
+        return { status: "success", message: "Halaman berhasil dihapus" };
+      }
+    }
+    return { status: "error", message: "ID Halaman tidak ditemukan" };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function checkSlug(d) {
+  try {
+    const s = mustSheet_("Pages");
+    const slug = String(d.slug).trim();
+    const excludeId = String(d.exclude_id || "").trim(); // For edit mode
+    
+    const r = s.getDataRange().getValues();
+    for (let i = 1; i < r.length; i++) {
+      const rowSlug = String(r[i][1]).trim();
+      const rowId = String(r[i][0]).trim();
+      
+      if (rowSlug === slug) {
+          if (excludeId && rowId === excludeId) {
+              // Same page, it's fine
+          } else {
+              return { status: "success", available: false, message: "Slug URL sudah digunakan" };
+          }
+      }
+    }
+    return { status: "success", available: true, message: "Slug URL tersedia" };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
