@@ -318,6 +318,22 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- SPONSOR INFO -->
+                    <div id="sponsor-info-card" class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 mb-8 flex items-center gap-5 shadow-lg shadow-indigo-200/50 text-white hidden fade-in-up">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shrink-0">
+                            <i data-lucide="user-check" class="w-7 h-7 text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">Sponsor / Upline Anda</p>
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <span id="display-upline-name">Loading...</span>
+                                <i data-lucide="badge-check" class="w-5 h-5 text-emerald-300"></i>
+                            </h3>
+                            <p class="text-xs text-indigo-100 mt-1">Transaksi Anda akan terhubung dengan sponsor ini.</p>
+                        </div>
+                    </div>
+                    
                     <div class="section-panel">
                         <div class="overflow-x-auto custom-scroll">
                             <table class="w-full text-left text-sm min-w-[600px]">
@@ -714,6 +730,17 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
         function renderDashboardUI(r) {
             if (r.pages) window.cachedPages = r.pages;
+            
+            // Render Sponsor Info
+            if (r.user && r.user.upline_name) {
+                const sponsorCard = document.getElementById('sponsor-info-card');
+                const sponsorNameEl = document.getElementById('display-upline-name');
+                if(sponsorCard && sponsorNameEl) {
+                    sponsorNameEl.innerText = r.user.upline_name;
+                    sponsorCard.classList.remove('hidden');
+                }
+            }
+
             if (r.my_pages) renderMyPages(r.my_pages);
             if (r.partners) renderPartners(r.partners);
             if (r.total_komisi !== undefined) {

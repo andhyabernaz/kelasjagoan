@@ -649,6 +649,17 @@ function getDashboardData(d) {
     }
     // Default to Admin if no upline found
     if(!uplineId) uplineId = adminId;
+
+    // 1c. Get Upline Name
+    let uplineName = "Admin";
+    if(uplineId) {
+         for(let m=1; m<users.length; m++) {
+             if(String(users[m][0]) === uplineId) {
+                 uplineName = String(users[m][3]);
+                 break;
+             }
+         }
+    }
     
     // 2. Get Products (reuse existing logic + pass cached orders)
     const productsData = getProducts(d, cfg, orders);
@@ -665,7 +676,7 @@ function getDashboardData(d) {
     return {
       status: "success",
       data: {
-        user: { id: userId, nama: userNama, upline_id: uplineId },
+        user: { id: userId, nama: userNama, upline_id: uplineId, upline_name: uplineName },
         settings: { 
             site_name: getCfgFrom_(cfg, "site_name"),
             site_logo: getCfgFrom_(cfg, "site_logo"),
