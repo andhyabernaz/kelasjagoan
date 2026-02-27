@@ -78,6 +78,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const slug = urlParams.get('s');
 
+        // Capture Affiliate Ref
+        const ref = urlParams.get('ref') || urlParams.get('aff_id');
+        if(ref) {
+            localStorage.setItem('melimpah_affiliate', ref);
+        }
+
         function injectMetaPixel(pixelId) {
             if(!pixelId) return;
             if(window.fbq) return; // Prevent double injection

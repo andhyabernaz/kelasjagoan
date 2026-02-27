@@ -25,17 +25,8 @@
 
                 // Eksekusi DOM HTML (Menyuntikkan Teks ke Halaman)
                 const updateDomElements = () => {
-                    // Injeksi Komisi
-                    if(data.affiliate_commission) {
-                        const commEl = document.getElementById('display-comm-rate');
-                        if(commEl) commEl.innerText = data.affiliate_commission + '%';
-                    }
-                    
-                    // INJEKSI NAMA WEB
                     if(data.site_name) {
-                        document.querySelectorAll('.dyn-site-name').forEach(el => {
-                            el.innerText = data.site_name;
-                        });
+                        document.querySelectorAll('.dyn-site-name').forEach(el => { el.innerText = data.site_name; });
                         const logoImg = document.getElementById('dyn-site-logo');
                         if(logoImg && logoImg.alt === '') logoImg.alt = data.site_name;
                     }

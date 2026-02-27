@@ -22,10 +22,6 @@
                 }
 
                 const updateDomElements = () => {
-                    if(data.affiliate_commission) {
-                        const commEl = document.getElementById('display-comm-rate');
-                        if(commEl) commEl.innerText = data.affiliate_commission + '%';
-                    }
                     if(data.site_name) {
                         document.querySelectorAll('.dyn-site-name').forEach(el => { el.innerText = data.site_name; });
                         const logoImg = document.getElementById('dyn-site-logo');
@@ -209,7 +205,7 @@
                                     </span>
                                 </div>
                                 <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Sebarkan & <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-emerald-300">Hasilkan Cuan!</span></h2>
-                                <p class="text-slate-400 text-sm mb-8 max-w-md leading-relaxed">Dapatkan komisi sebesar <span id="display-comm-rate" class="font-bold text-white bg-indigo-600 px-2 py-0.5 rounded text-xs">...</span> dari setiap penjualan produk melalui link referensi unik Anda.</p>
+                                <p class="text-slate-400 text-sm mb-8 max-w-md leading-relaxed">Dapatkan komisi menarik dari setiap penjualan produk melalui link referensi unik Anda.</p>
                                 
                                 <div class="flex flex-col sm:flex-row gap-3">
                                     <div class="flex-1 bg-slate-950/50 border border-white/10 px-5 py-3 rounded-xl flex items-center gap-3 backdrop-blur-sm group cursor-pointer hover:border-indigo-500/50 transition-all" onclick="copyAffLink()">
@@ -730,6 +726,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
         function renderDashboardUI(r) {
             if (r.pages) window.cachedPages = r.pages;
+            if (r.affiliate_pixels) window.currentAffiliatePixels = r.affiliate_pixels;
             
             // Render Sponsor Info
             if (r.user && r.user.upline_name) {
@@ -749,7 +746,12 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
             const ownedContainer = document.getElementById('list-owned');
             if (r.owned && r.owned.length > 0) {
-                ownedContainer.innerHTML = r.owned.map(p => `
+                ownedContainer.innerHTML = r.owned.map(p => {
+                    const hasPixel = window.currentAffiliatePixels && window.currentAffiliatePixels.find(x => String(x.product_id) === String(p.id) && x.pixel_id);
+                    const pixelBtnClass = hasPixel 
+                        ? "text-indigo-600 bg-indigo-50 border-indigo-200" 
+                        : "text-slate-400 hover:text-indigo-600 bg-white border-slate-200";
+                    return `
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full group fade-in-up relative overflow-hidden">
                         <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                             <i data-lucide="award" class="w-24 h-24 text-indigo-600 transform rotate-12 translate-x-4 -translate-y-4"></i>
@@ -767,12 +769,21 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                             <h3 class="text-lg font-bold text-slate-800 mb-2 leading-tight group-hover:text-indigo-600 transition-colors clamp-2">${p.title}</h3>
                             <p class="text-xs text-slate-500 mb-6 flex-1 clamp-3 leading-relaxed">${p.desc}</p>
                             
+                            ${p.commission > 0 ? `
+                            <div class="mb-6 pt-4 border-t border-slate-50">
+                                <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Komisi Affiliate</p>
+                                <span class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Rp ${Number(p.commission).toLocaleString('id-ID')}</span>
+                            </div>` : ''}
+
                             <div class="flex gap-2 mt-auto">
                                 <a href="akses.html?id=${p.id}" class="flex-1 bg-slate-900 text-white px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-indigo-600 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-slate-200">
                                     Akses Materi <i data-lucide="arrow-right" class="w-4 h-4"></i>
                                 </a>
                                 <button onclick="copyPromoLink('${p.id}')" class="bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 px-4 py-3 rounded-xl transition-colors border border-slate-200 shadow-sm" title="Salin Link Affiliate">
                                     <i data-lucide="share-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openPixelModal('${p.id}', '${p.title}')" data-pixel-btn="${p.id}" class="${pixelBtnClass} px-4 py-3 rounded-xl transition-colors border shadow-sm" title="Konfigurasi Pixel">
+                                    <i data-lucide="target" class="w-4 h-4"></i>
                                 </button>
                             </div>
                         </div>
@@ -796,6 +807,12 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 // Use slice() to create a copy before reversing to avoid mutating the original array (and cache)
                 availableContainer.innerHTML = r.available.slice().reverse().map(p => {
                     const targetLink = `checkout.html?id=${p.id}${uplineRef ? '&ref='+uplineRef : ''}`; // Direct checkout with Upline Ref
+                    
+                    const hasPixel = window.currentAffiliatePixels && window.currentAffiliatePixels.find(x => String(x.product_id) === String(p.id) && x.pixel_id);
+                    const pixelBtnClass = hasPixel 
+                        ? "text-indigo-600 bg-indigo-50 border-indigo-200" 
+                        : "text-slate-400 hover:text-indigo-600 bg-white border-slate-200";
+
                     return `
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col h-full fade-in-up group relative overflow-hidden">
                         <div class="relative z-10 flex flex-col h-full">
@@ -807,9 +824,16 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                             ${p.image_url ? `<div class="w-full aspect-square rounded-2xl overflow-hidden mb-6 border border-slate-100"><img src="${p.image_url}" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                             <h3 class="text-lg font-bold text-slate-800 mb-2 leading-tight clamp-2">${p.title}</h3>
                             <p class="text-xs text-slate-500 mb-4 flex-1 clamp-2 leading-relaxed">${p.desc}</p>
-                            <div class="mb-6 pt-4 border-t border-slate-50">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Harga</p>
-                                <span class="text-xl font-bold text-slate-800">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
+                            <div class="flex justify-between items-end mb-6 pt-4 border-t border-slate-50">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Harga</p>
+                                    <span class="text-xl font-bold text-slate-800">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
+                                </div>
+                                ${p.commission > 0 ? `
+                                <div class="text-right">
+                                    <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Komisi</p>
+                                    <span class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Rp ${Number(p.commission).toLocaleString('id-ID')}</span>
+                                </div>` : ''}
                             </div>
                             
                             <div class="flex gap-2 mt-auto">
@@ -818,6 +842,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                                 </a>
                                 <button onclick="copyPromoLink('${p.id}')" class="bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 px-4 py-3 rounded-xl transition-colors border border-slate-200 shadow-sm" title="Salin Link Affiliate">
                                     <i data-lucide="share-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openPixelModal('${p.id}', '${p.title}')" data-pixel-btn="${p.id}" class="${pixelBtnClass} px-4 py-3 rounded-xl transition-colors border shadow-sm" title="Konfigurasi Pixel">
+                                    <i data-lucide="target" class="w-4 h-4"></i>
                                 </button>
                             </div>
                         </div>
@@ -858,6 +885,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                              }
                         }
 
+                        const hasPixel = window.currentAffiliatePixels && window.currentAffiliatePixels.find(x => String(x.product_id) === String(p.id) && x.pixel_id);
+                        const pixelBtnClass = hasPixel 
+                            ? "text-indigo-600 bg-indigo-50 border-indigo-200" 
+                            : "text-slate-400 hover:text-indigo-600 bg-white border-slate-200";
+
                         return `
                         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3 group hover:border-indigo-100 transition-all fade-in-up">
                             <div class="flex items-center gap-3 mb-1">
@@ -878,6 +910,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                             <div class="flex gap-2 mt-1">
                                 <button onclick="navigator.clipboard.writeText('${finalAffLink}'); showToast('Link Landing Page berhasil disalin!')" class="flex-1 bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200/50">
                                     <i data-lucide="copy" class="w-3 h-3"></i> Salin Link
+                                </button>
+                                <button onclick="openPixelModal('${p.id}', '${p.title}')" data-pixel-btn="${p.id}" class="${pixelBtnClass} px-3 py-2.5 rounded-xl transition-colors border shadow-sm" title="Konfigurasi Pixel">
+                                    <i data-lucide="target" class="w-4 h-4"></i>
                                 </button>
                                 ${downloadBtn}
                                 <a href="${finalAffLink}" target="_blank" class="px-3 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-xl transition-colors flex items-center justify-center shadow-sm">
@@ -931,7 +966,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                         ...r.data.products, // owned, available, partners, total_komisi
                         pages: r.data.pages,
                         settings: r.data.settings,
-                        user: r.data.user // Include user data (id, nama, upline_id)
+                        user: r.data.user, // Include user data (id, nama, upline_id)
+                        affiliate_pixels: r.data.affiliate_pixels
                     };
 
                     const freshData = JSON.stringify(combinedData);
@@ -1622,6 +1658,137 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 
         // Initial Load
         // loadMyPages() dipanggil di window.onload
+    </script>
+    <!-- Product Pixel Modal -->
+    <div id="modal-product-pixel" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closePixelModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden fade-in-up">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-lg text-slate-800">Konfigurasi Pixel</h3>
+                    <button onclick="closePixelModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-500 mb-2">Atur Meta Pixel khusus untuk produk <span id="pixel-product-name" class="font-bold text-slate-800">...</span>. Pixel ini akan aktif saat orang mengunjungi link affiliate Anda.</p>
+                    <input type="hidden" id="pixel-product-id">
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pixel ID</label>
+                        <input type="text" id="pixel-id" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-mono text-xs text-slate-800 placeholder:text-slate-400" placeholder="Ex: 1234567890">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Access Token (Opsional)</label>
+                        <input type="text" id="pixel-token" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-mono text-xs text-slate-800 placeholder:text-slate-400" placeholder="Ex: EAA...">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Test Event Code (Opsional)</label>
+                        <input type="text" id="pixel-test" class="w-full px-4 py-3 rounded-xl bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all font-mono text-xs text-slate-800 placeholder:text-slate-400" placeholder="Ex: TEST1234">
+                    </div>
+                </div>
+                <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+                    <button onclick="closePixelModal()" class="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-colors">Batal</button>
+                    <button onclick="savePixelConfig()" id="btn-save-pixel" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
+                        Simpan Konfigurasi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPixelModal(pId, pTitle) {
+            document.getElementById('pixel-product-id').value = pId;
+            document.getElementById('pixel-product-name').innerText = pTitle;
+            
+            // Clear inputs first
+            document.getElementById('pixel-id').value = '';
+            document.getElementById('pixel-token').value = '';
+            document.getElementById('pixel-test').value = '';
+
+            // Check if existing pixel data is in cache
+            if (window.currentAffiliatePixels) {
+                const existing = window.currentAffiliatePixels.find(x => String(x.product_id) === String(pId));
+                if (existing) {
+                    document.getElementById('pixel-id').value = existing.pixel_id || '';
+                    document.getElementById('pixel-token').value = existing.pixel_token || '';
+                    document.getElementById('pixel-test').value = existing.pixel_test_code || '';
+                }
+            }
+            
+            document.getElementById('modal-product-pixel').classList.remove('hidden');
+        }
+
+        function closePixelModal() {
+            document.getElementById('modal-product-pixel').classList.add('hidden');
+        }
+
+        async function savePixelConfig() {
+            const pId = document.getElementById('pixel-product-id').value;
+            const pixId = document.getElementById('pixel-id').value;
+            const pixToken = document.getElementById('pixel-token').value;
+            const pixTest = document.getElementById('pixel-test').value;
+            const btn = document.getElementById('btn-save-pixel');
+            const oriText = btn.innerHTML;
+
+            if(!pId) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Loading...';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'save_affiliate_pixel',
+                        email: userEmail,
+                        product_id: pId,
+                        pixel_id: pixId,
+                        pixel_token: pixToken,
+                        pixel_test_code: pixTest
+                    })
+                });
+                const r = await res.json();
+                
+                if(r.status === 'success') {
+                    showToast('Konfigurasi Pixel berhasil disimpan!', 'success');
+                    closePixelModal();
+                    
+                    // Update local cache manually
+                    if (!window.currentAffiliatePixels) window.currentAffiliatePixels = [];
+                    const idx = window.currentAffiliatePixels.findIndex(x => String(x.product_id) === String(pId));
+                    const newEntry = { product_id: pId, pixel_id: pixId, pixel_token: pixToken, pixel_test_code: pixTest };
+                    
+                    if (idx >= 0) {
+                        window.currentAffiliatePixels[idx] = newEntry;
+                    } else {
+                        window.currentAffiliatePixels.push(newEntry);
+                    }
+                    
+                    // Update button style
+                    const btnEl = document.querySelector(`button[data-pixel-btn="${pId}"]`);
+                    if(btnEl) {
+                        if(pixId) {
+                            btnEl.classList.remove('text-slate-400', 'hover:text-indigo-600', 'bg-white', 'border-slate-200');
+                            btnEl.classList.add('text-indigo-600', 'bg-indigo-50', 'border-indigo-200');
+                        } else {
+                            btnEl.classList.add('text-slate-400', 'hover:text-indigo-600', 'bg-white', 'border-slate-200');
+                            btnEl.classList.remove('text-indigo-600', 'bg-indigo-50', 'border-indigo-200');
+                        }
+                    }
+                } else {
+                    showToast(r.message || 'Gagal menyimpan konfigurasi', 'error');
+                }
+            } catch(e) {
+                showToast('Terjadi kesalahan koneksi', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oriText;
+                lucide.createIcons();
+            }
+        }
     </script>
 </body>
 </html>

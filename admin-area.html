@@ -531,7 +531,7 @@
             
             <form id="form-prod" class="space-y-5">
                 <input type="hidden" id="p-is-edit">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     <div>
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">ID Produk</label>
                         <input type="text" id="p-id" placeholder="PRD-01" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-bold text-slate-700" required>
@@ -539,6 +539,10 @@
                     <div>
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Harga (Rp)</label>
                         <input type="number" id="p-harga" placeholder="100000" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-bold text-slate-700" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Komisi Affiliate (Rp)</label>
+                        <input type="number" id="p-commission" placeholder="0" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-bold text-slate-700">
                     </div>
                 </div>
                 
@@ -866,6 +870,7 @@
                         <div class="flex items-center justify-end gap-2">
                             <button onclick="downloadPageHTML('${p[0]}')" class="bg-white border border-slate-200 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors p-2 rounded-xl" title="Download HTML"><i data-lucide="download" class="w-4 h-4"></i></button>
                             <button onclick="editPage('${p[0]}')" class="bg-white border border-slate-200 text-slate-500 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors px-4 py-2 rounded-xl font-bold text-xs">Edit</button>
+                            <button onclick="deletePage('${p[0]}', '${p[2].replace(/'/g, "\\'")}')" class="bg-red-50 text-red-500 hover:bg-red-600 hover:text-white px-4 py-2 rounded-xl font-bold transition-all" title="Hapus Halaman"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     </td>
                 </tr>`).join('');
@@ -1021,6 +1026,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.getElementById('p-desc').value = p[2]; 
             document.getElementById('p-url').value = p[3]; 
             document.getElementById('p-harga').value = p[4]; 
+            document.getElementById('p-commission').value = p[11] || 0;
             document.getElementById('p-lp').value = p[6] || ""; 
             const imgUrl = p[7] || "";
             document.getElementById('p-image').value = imgUrl;
@@ -1054,6 +1060,28 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 }
             } catch(e) {
                 showToast('Gagal menghapus produk: ' + e.toString(), 'error');
+            }
+        }
+
+        async function deletePage(id, name) {
+            const confirmed = await customConfirm(`Hapus halaman "${name}"? Tindakan ini tidak dapat dibatalkan.`);
+            if(!confirmed) return;
+
+            showToast('Menghapus halaman...', 'warning');
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'delete_page', id: id })
+                });
+                const r = await res.json();
+                if(r.status === 'success') {
+                    showToast('Halaman berhasil dihapus!', 'success');
+                    forceSync();
+                } else {
+                    showToast(r.message, 'error');
+                }
+            } catch(e) {
+                showToast('Gagal menghapus halaman: ' + e.toString(), 'error');
             }
         }
 
@@ -1241,6 +1269,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 desc: document.getElementById('p-desc').value, 
                 url: document.getElementById('p-url').value, 
                 harga: document.getElementById('p-harga').value, 
+                commission: document.getElementById('p-commission').value,
                 lp_url: document.getElementById('p-lp').value,
                 image_url: document.getElementById('p-image').value, 
                 pixel_id: document.getElementById('p-pixel-id').value,

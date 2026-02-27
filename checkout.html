@@ -336,6 +336,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
         
+        // Capture Affiliate Ref from URL
+        const ref = urlParams.get('ref') || urlParams.get('aff_id');
+        if(ref) {
+            localStorage.setItem('melimpah_affiliate', ref);
+        }
+
         const PRODUCT_CACHE_KEY = 'melimpah_product_' + productId;
 
         function selectPayment(method) {

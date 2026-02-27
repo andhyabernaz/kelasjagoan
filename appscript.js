@@ -141,6 +141,7 @@ function doPost(e) {
       case "delete_product": return jsonRes(deleteProduct(data));
       case "delete_page": return jsonRes(deletePage(data));
       case "check_slug": return jsonRes(checkSlug(data));
+      case "save_affiliate_pixel": return jsonRes(saveAffiliatePixel(data));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar: " + (action || "unknown") });
     }
   } catch (err) {
@@ -161,7 +162,6 @@ function getGlobalSettings(cfg) {
       site_favicon: getCfgFrom_(cfg, "site_favicon") || "",
       site_logo: getCfgFrom_(cfg, "site_logo") || "",
       contact_email: getCfgFrom_(cfg, "contact_email") || "",
-      affiliate_commission: getCfgFrom_(cfg, "affiliate_commission") || "0",
       wa_admin: getCfgFrom_(cfg, "wa_admin") || ""
     }
   };
@@ -297,8 +297,19 @@ function createOrder(d, cfg) {
     if (hargaDasar <= 0) return { status: "error", message: "Harga tidak valid" };
 
     let komisiNominal = 0;
-    const persentaseKomisi = Number(getCfgFrom_(cfg, "affiliate_commission")) || 0;
-    if (aff !== "-") komisiNominal = (hargaDasar * persentaseKomisi) / 100;
+    
+    // Lookup Product Commission
+    const pId = String(d.id_produk || "").trim();
+    if (pId && aff !== "-") {
+        const rules = mustSheet_("Access_Rules").getDataRange().getValues();
+        for (let i = 1; i < rules.length; i++) {
+            if (String(rules[i][0]) === pId) {
+                // Commission is in column 12 (index 11)
+                komisiNominal = Number(rules[i][11] || 0);
+                break;
+            }
+        }
+    }
 
     const kodeUnik = Math.floor(Math.random() * 900) + 100;
     const hargaTotalUnik = hargaDasar + kodeUnik;
@@ -510,6 +521,26 @@ function updateOrderStatus(d, cfg) {
 }
 
 /* =========================
+   HELPER: GET AFFILIATE PIXEL
+========================= */
+function getAffiliatePixel_(userId, productId) {
+  const s = ss.getSheetByName("Affiliate_Pixels");
+  if (!s) return null;
+  
+  const d = s.getDataRange().getValues();
+  for (let i = 1; i < d.length; i++) {
+    if (String(d[i][0]) === String(userId) && String(d[i][1]) === String(productId)) {
+      return {
+        pixel_id: String(d[i][2]),
+        pixel_token: String(d[i][3]),
+        pixel_test_code: String(d[i][4])
+      };
+    }
+  }
+  return null;
+}
+
+/* =========================
    PRODUCT DETAIL
 ========================= */
 function getProductDetail(d, cfg) {
@@ -528,12 +559,25 @@ function getProductDetail(d, cfg) {
             harga: rules[i][4],
             pixel_id: rules[i][8] || "",
             pixel_token: rules[i][9] || "",
-            pixel_test_code: rules[i][10] || ""
+            pixel_test_code: rules[i][10] || "",
+            commission: rules[i][11] || 0
         };
         break;
       }
     }
     if (!productData) return { status: "error", message: "Produk tidak ditemukan" };
+
+    // --> CHECK AFFILIATE PIXEL OVERRIDE
+    const affRef = d.ref || d.aff_id;
+    if (affRef) {
+        const affPixel = getAffiliatePixel_(affRef, pId);
+        if (affPixel && affPixel.pixel_id) {
+            productData.pixel_id = affPixel.pixel_id;
+            productData.pixel_token = affPixel.pixel_token;
+            productData.pixel_test_code = affPixel.pixel_test_code;
+            productData.is_affiliate_pixel = true;
+        }
+    }
 
     const paymentInfo = {
       bank_name: getCfgFrom_(cfg, "bank_name"),
@@ -541,7 +585,7 @@ function getProductDetail(d, cfg) {
       bank_owner: getCfgFrom_(cfg, "bank_owner"),
       wa_admin: getCfgFrom_(cfg, "wa_admin"),
       duitku_active: !!getCfgFrom_(cfg, "duitku_merchant_code"),
-      pixel_id: productData.pixel_id, // Pass pixel_id to frontend
+      pixel_id: productData.pixel_id, // Pass pixel_id (possibly overridden)
       pixel_token: productData.pixel_token,
       pixel_test_code: productData.pixel_test_code
     };
@@ -611,7 +655,8 @@ function getProducts(d, cfg, cachedOrders) {
         harga: rules[i][4],
         access: hasAccess,
         lp_url: rules[i][6] || "",
-        image_url: rules[i][7] || ""
+        image_url: rules[i][7] || "",
+        commission: rules[i][11] || 0
       };
       if (hasAccess && email) owned.push(pObj);
       else available.push(pObj);
@@ -686,6 +731,25 @@ function getDashboardData(d) {
         myPages = getAllPages({ ...d, owner_id: userId, only_mine: true });
     }
     
+    // 5. Get Affiliate Pixels (User specific)
+    let myPixels = [];
+    if(userId) {
+        const s = ss.getSheetByName("Affiliate_Pixels");
+        if (s) {
+            const data = s.getDataRange().getValues();
+            for (let i = 1; i < data.length; i++) {
+                if (String(data[i][0]) === userId) {
+                    myPixels.push({
+                        product_id: data[i][1],
+                        pixel_id: data[i][2],
+                        pixel_token: data[i][3],
+                        pixel_test_code: data[i][4]
+                    });
+                }
+            }
+        }
+    }
+    
     return {
       status: "success",
       data: {
@@ -694,12 +758,12 @@ function getDashboardData(d) {
             site_name: getCfgFrom_(cfg, "site_name"),
             site_logo: getCfgFrom_(cfg, "site_logo"),
             site_favicon: getCfgFrom_(cfg, "site_favicon"),
-            affiliate_commission: getCfgFrom_(cfg, "affiliate_commission"),
             wa_admin: getCfgFrom_(cfg, "wa_admin")
         },
         products: productsData,
         pages: globalPages.data || [],
-        my_pages: myPages.data || []
+        my_pages: myPages.data || [],
+        affiliate_pixels: myPixels
       }
     };
   } catch (e) {
@@ -823,17 +887,17 @@ function saveProduct(d) {
   try {
     const s = mustSheet_("Access_Rules");
     
-    // Ensure we have enough columns (11 columns needed)
-    if (s.getMaxColumns() < 11) s.insertColumnsAfter(s.getMaxColumns(), 11 - s.getMaxColumns());
+    // Ensure we have enough columns (12 columns needed)
+    if (s.getMaxColumns() < 12) s.insertColumnsAfter(s.getMaxColumns(), 12 - s.getMaxColumns());
     
-    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url, d.pixel_id, d.pixel_token, d.pixel_test_code];
+    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url, d.pixel_id, d.pixel_token, d.pixel_test_code, d.commission];
     const isEdit = String(d.is_edit) === "true";
 
     if (isEdit) {
       const r = s.getDataRange().getValues();
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][0]).trim() === String(d.id).trim()) {
-          s.getRange(i + 1, 1, 1, 11).setValues([dataRow]);
+          s.getRange(i + 1, 1, 1, 12).setValues([dataRow]);
           return { status: "success" };
         }
       }
@@ -1101,6 +1165,63 @@ function updateUserProfile(d) {
 
     return { status: "success", message: "Profil berhasil diperbarui", new_email: newEmail, new_name: newName };
 
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   AFFILIATE PIXEL SETTINGS
+========================= */
+function saveAffiliatePixel(d) {
+  try {
+    const sName = "Affiliate_Pixels";
+    let s = ss.getSheetByName(sName);
+    if (!s) {
+      s = ss.insertSheet(sName);
+      s.appendRow(["user_id", "product_id", "pixel_id", "pixel_token", "pixel_test_code"]);
+    }
+    
+    // 1. Get User ID from Email (Secure way: use login token if available, but here we trust email for now as it's backend call from trusted client logic)
+    // Ideally we should use session token, but current system uses email.
+    const email = String(d.email || "").trim().toLowerCase();
+    if (!email) return { status: "error", message: "Email wajib diisi" };
+
+    const uS = mustSheet_("Users");
+    const uR = uS.getDataRange().getValues();
+    let userId = "";
+    
+    for (let i = 1; i < uR.length; i++) {
+      if (String(uR[i][1]).toLowerCase() === email) { 
+        userId = String(uR[i][0]); 
+        break; 
+      }
+    }
+    
+    if (!userId) return { status: "error", message: "User tidak ditemukan" };
+    
+    const productId = String(d.product_id).trim();
+    const pixelId = String(d.pixel_id || "").trim();
+    const pixelToken = String(d.pixel_token || "").trim();
+    const pixelTest = String(d.pixel_test_code || "").trim();
+
+    const r = s.getDataRange().getValues();
+    let found = false;
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][0]) === userId && String(r[i][1]) === productId) {
+        // Update existing row (Col 3, 4, 5 -> index 2, 3, 4)
+        s.getRange(i + 1, 3, 1, 3).setValues([[pixelId, pixelToken, pixelTest]]);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      s.appendRow([userId, productId, pixelId, pixelToken, pixelTest]);
+    }
+    
+    return { status: "success", message: "Pixel berhasil disimpan" };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
