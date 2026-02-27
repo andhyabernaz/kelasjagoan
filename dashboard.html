@@ -918,10 +918,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                     }
                 } else { 
                     if(!cachedData) showToast('Gagal memuat data: ' + (r.message || 'Server Error'), 'error'); 
+                    console.error("Server Error:", r);
                 }
             } catch (err) { 
-                console.error(err);
-                if(!cachedData) showToast('Koneksi internet bermasalah.', 'error'); 
+                console.error("Dashboard Load Error:", err);
+                if(!cachedData) showToast('Koneksi internet bermasalah: ' + err.toString(), 'error'); 
             }
         }
 
@@ -1412,7 +1413,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 }
             } catch(e) {
                 console.error("Failed to load my pages", e);
-                container.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-400 text-xs">Gagal koneksi server.</td></tr>`;
+                container.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-400 text-xs">Gagal koneksi server: ${e.toString()}</td></tr>`;
             }
         }
 
