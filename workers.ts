@@ -3,7 +3,7 @@ export default {
     if (request.method !== 'POST') return new Response('Hanya menerima POST', { status: 405 });
 
     // ⚠️ PASTIKAN INI ADALAH URL WEB APP DEPLOYMENT ANDA YANG PALING BARU!
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxKpguAZm2g-u_ys7jbcOdFo0JgWcAGgOCGuDuqVHMJiCgb8QTLz2Sj2VJls32ArS5Y/exec?token=2h3Rnc10";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzhD52PbDNyMEYH5ZRdpsPeE0-d5yQB1gFcptfQDhvcShav0LkQMTcXJb32ymmC_yIx/exec?token=2h3Rnc10";
 
     try {
       const requestBody = await request.text();
