@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <script src="config.js?v=2026"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bio Link - Loading...</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Bio Link</title>
+    <script src="config.js?v=2026_1"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -110,13 +110,33 @@
                 if (r.status === 'success' && r.data) {
                     renderUserProfile(r.data);
                 } else {
-                    // User not found or no bio -> Fallback to global
                     console.warn("User bio not found for ID:", userId, "Response:", r);
+                    
+                    // UX Improvement: Show specific message if not found, but only if not in debug mode (debug mode has its own alert)
+                    if (!urlParams.get('debug')) {
+                         // Optional: You could show a toast here or just render a "User Not Found" state
+                         // For now, we will render a "User Not Found" state instead of global fallback if userId was present but failed.
+                         // This helps the user know the difference between "System Error" and "Wrong ID"
+                         
+                         // BUT, user request says "tampilan masih belum sesuai settingan di user".
+                         // Falling back to global is confusing.
+                         // Let's try to load global settings BUT also show a small "Profile not found" badge?
+                         // Or better: render a skeleton with "Profile Not Configured"
+                    }
+                    
                     loadGlobalSettings();
                     
-                    // Optional: If debug mode
                     if (urlParams.get('debug')) {
-                        alert("Debug: User bio not found. Check console for details.");
+                        alert(`Debug: User bio not found for ID: ${userId}\nResponse: ${JSON.stringify(r)}`);
+                    } else {
+                        // If user ID was provided but not found, show a small hint
+                        const container = document.querySelector('.max-w-md');
+                        if (container) {
+                            const errorBadge = document.createElement('div');
+                            errorBadge.className = 'bg-red-100 text-red-700 text-xs p-2 text-center mb-4 rounded';
+                            errorBadge.innerHTML = `⚠️ Profil User <b>${userId}</b> tidak ditemukan. Menampilkan profil default.`;
+                            container.prepend(errorBadge);
+                        }
                     }
                 }
             } catch (e) {
