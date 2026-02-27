@@ -1634,20 +1634,17 @@ function saveBioLink(d) {
 
 function getBioLink(d) {
   try {
-    const s = ss.getSheetByName("Bio_Links");
-    if (!s || s.getLastRow() === 0) return { status: "success", data: null };
-
-    const data = s.getDataRange().getValues();
     const userId = String(d.user_id || "").trim();
-    
-    // Default Empty Data
-    let result = null;
+    if (!userId) return { status: "success", data: null };
 
-    if (userId) {
+    // 1. Try Bio_Links Sheet
+    const s = ss.getSheetByName("Bio_Links");
+    if (s && s.getLastRow() > 0) {
+      const data = s.getDataRange().getValues();
       for (let i = 1; i < data.length; i++) {
         // Case-insensitive & trimmed comparison for safety
         if (String(data[i][0]).trim().toLowerCase() === userId.toLowerCase()) {
-          result = {
+          let result = {
             photo_url: data[i][1],
             display_name: data[i][2],
             bio: data[i][3],
@@ -1656,12 +1653,35 @@ function getBioLink(d) {
             socials: {}
           };
           try { result.socials = JSON.parse(data[i][6]); } catch(e) {}
-          break;
+          return { status: "success", data: result };
         }
       }
     }
-    
-    return { status: "success", data: result };
+
+    // 2. Fallback to Users Sheet (if not found in Bio_Links)
+    // Ini memastikan user yang belum setting bio tetap muncul namanya, bukan Default Admin
+    const uS = ss.getSheetByName("Users");
+    if (uS) {
+        const uData = uS.getDataRange().getValues();
+        for (let i = 1; i < uData.length; i++) {
+             // User ID is col 1 (index 0)
+             if (String(uData[i][0]).trim().toLowerCase() === userId.toLowerCase()) {
+                 return {
+                     status: "success",
+                     data: {
+                         photo_url: "",
+                         display_name: uData[i][3], // Nama
+                         bio: "Member Resmi", // Default bio
+                         wa: "",
+                         email: uData[i][1], // Email
+                         socials: {}
+                     }
+                 };
+             }
+        }
+    }
+
+    return { status: "success", data: null };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bio Link</title>
-    <script src="config.js?v=2026_1"></script>
+    <script src="config.js?v=2026_2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -112,36 +112,52 @@
                 } else {
                     console.warn("User bio not found for ID:", userId, "Response:", r);
                     
-                    // UX Improvement: Show specific message if not found, but only if not in debug mode (debug mode has its own alert)
-                    if (!urlParams.get('debug')) {
-                         // Optional: You could show a toast here or just render a "User Not Found" state
-                         // For now, we will render a "User Not Found" state instead of global fallback if userId was present but failed.
-                         // This helps the user know the difference between "System Error" and "Wrong ID"
-                         
-                         // BUT, user request says "tampilan masih belum sesuai settingan di user".
-                         // Falling back to global is confusing.
-                         // Let's try to load global settings BUT also show a small "Profile not found" badge?
-                         // Or better: render a skeleton with "Profile Not Configured"
-                    }
-                    
-                    loadGlobalSettings();
-                    
-                    if (urlParams.get('debug')) {
-                        alert(`Debug: User bio not found for ID: ${userId}\nResponse: ${JSON.stringify(r)}`);
-                    } else {
-                        // If user ID was provided but not found, show a small hint
-                        const container = document.querySelector('.max-w-md');
-                        if (container) {
-                            const errorBadge = document.createElement('div');
-                            errorBadge.className = 'bg-red-100 text-red-700 text-xs p-2 text-center mb-4 rounded';
-                            errorBadge.innerHTML = `⚠️ Profil User <b>${userId}</b> tidak ditemukan. Menampilkan profil default.`;
-                            container.prepend(errorBadge);
-                        }
+                    // IF user ID is provided but not found, show specific error instead of Global Settings
+                    // This avoids confusion where user sees Admin profile instead of their own (empty) profile
+                    const container = document.querySelector('.max-w-md');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="min-h-screen flex flex-col items-center justify-center p-8 text-center">
+                                <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                    <i data-lucide="user-x" class="w-12 h-12 text-slate-400"></i>
+                                </div>
+                                <h2 class="text-xl font-bold text-slate-800 mb-2">Pengguna Tidak Ditemukan</h2>
+                                <p class="text-slate-500 text-sm mb-8">User ID <b>${userId}</b> belum terdaftar atau belum mengaktifkan Bio Link.</p>
+                                <a href="index.html" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
+                                    Kembali ke Beranda
+                                </a>
+                                <div class="mt-8 pt-6 border-t border-slate-100 w-full">
+                                    <p class="text-[10px] text-slate-400">Debug Info: ${r.message || 'Data unavailable'}</p>
+                                </div>
+                            </div>
+                        `;
+                        lucide.createIcons();
                     }
                 }
             } catch (e) {
                 console.error("Error loading bio:", e);
-                loadGlobalSettings();
+                
+                // Show Connection Error Screen instead of fallback to Global Settings
+                // This helps debug why user sees "Default" (Admin) profile
+                const container = document.querySelector('.max-w-md');
+                if (container) {
+                     container.innerHTML = `
+                        <div class="min-h-screen flex flex-col items-center justify-center p-8 text-center">
+                            <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                <i data-lucide="wifi-off" class="w-12 h-12 text-red-500"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-800 mb-2">Gagal Memuat Profil</h2>
+                            <p class="text-slate-500 text-sm mb-8">Terjadi kesalahan koneksi saat mengambil data profil.</p>
+                            <a href="index.html" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
+                                Kembali ke Beranda
+                            </a>
+                            <div class="mt-8 pt-6 border-t border-slate-100 w-full">
+                                <p class="text-[10px] text-slate-400">Error: ${e.message}</p>
+                            </div>
+                        </div>
+                     `;
+                     lucide.createIcons();
+                }
             }
         }
 
