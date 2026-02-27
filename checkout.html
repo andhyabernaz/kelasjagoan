@@ -73,12 +73,30 @@
 
         /* CUSTOM TOAST CSS */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
-        .toast { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 16px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); max-width: 380px; line-height: 1.5; pointer-events: auto; backdrop-filter: blur(8px);}
+        .toast { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 16px; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); max-width: 380px; line-height: 1.5; pointer-events: auto; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .toast.show { opacity: 1; transform: translateY(0) scale(1); }
-        .toast.success { background: rgba(16, 185, 129, 0.95); border: 1px solid rgba(255,255,255,0.1); }
-        .toast.error { background: rgba(239, 68, 68, 0.95); border: 1px solid rgba(255,255,255,0.1); }
-        .toast.warning { background: rgba(245, 158, 11, 0.95); border: 1px solid rgba(255,255,255,0.1); }
+        .toast.success { background: rgba(16, 185, 129, 0.85); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(16, 185, 129, 0.2); }
+        .toast.error { background: rgba(239, 68, 68, 0.85); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2); }
+        .toast.warning { background: rgba(245, 158, 11, 0.85); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(245, 158, 11, 0.2); }
     </style>
+    <!-- Meta Pixel Code Helper -->
+    <script>
+        window._pixelId = null;
+        function initPixel(id) {
+            if(!id || window._pixelId) return;
+            window._pixelId = id;
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', id);
+            fbq('track', 'PageView');
+        }
+    </script>
 </head>
 <body class="bg-white text-slate-900 min-h-screen">
 
@@ -157,7 +175,7 @@
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nama Lengkap</label>
                             <div class="relative group">
-                                <input type="text" id="cust-name" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-12 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="Nama Lengkap Anda" required>
+                                <input type="text" id="cust-name" name="nama" autocomplete="name" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-12 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="Nama Lengkap Anda" required>
                                 <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
                             </div>
                         </div>
@@ -165,7 +183,7 @@
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Alamat Email</label>
                             <div class="relative group">
-                                <input type="email" id="cust-email" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-12 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="email@aktif.com" required>
+                                <input type="email" id="cust-email" name="email" autocomplete="email" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-12 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="email@aktif.com" required>
                                 <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
                             </div>
                         </div>
@@ -174,7 +192,7 @@
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nomor WhatsApp</label>
                             <div class="relative group">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 border-r-2 border-slate-200 pr-3 group-focus-within:text-indigo-500 group-focus-within:border-indigo-100 transition-colors">+62</span>
-                                <input type="tel" id="cust-wa" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-20 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="8123xxxxxxx" required pattern="[0-9]*" inputmode="numeric">
+                                <input type="tel" id="cust-wa" name="whatsapp" autocomplete="tel" class="w-full bg-slate-50 border-2 border-slate-100 focus:bg-white focus:border-indigo-500 focus:ring-0 rounded-xl p-4 pl-20 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 placeholder:font-semibold group-hover:border-slate-200" placeholder="8123xxxxxxx" required pattern="[0-9]*" inputmode="numeric">
                                 <i data-lucide="smartphone" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-indigo-500 transition-colors"></i>
                             </div>
                         </div>
@@ -184,34 +202,33 @@
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Metode Pembayaran</label>
                             <div class="grid grid-cols-1 gap-3">
                                 <!-- BANK TRANSFER (DEFAULT) -->
-                                <label class="group relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 border-indigo-600 bg-indigo-50/50 shadow-sm hover:shadow-md" id="opt-bank">
+                                <label class="group relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 peer-checked:border-indigo-600 peer-checked:bg-indigo-50/50 shadow-sm hover:shadow-md has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 has-[:checked]:shadow-indigo-500/10" id="opt-bank">
                                     <input type="radio" name="payment_method" value="bank" class="peer sr-only" checked onchange="selectPayment('bank')">
                                     <div class="flex-shrink-0 mt-0.5 mr-3">
-                                        <div class="w-5 h-5 rounded-full border-2 border-indigo-600 bg-white flex items-center justify-center peer-checked:bg-indigo-600 transition-colors">
-                                            <div class="w-2.5 h-2.5 rounded-full bg-indigo-600 peer-checked:bg-white transition-colors"></div>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex justify-between items-center mb-1">
-                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors">Transfer Bank (Manual)</span>
-                                            <i data-lucide="arrow-left-right" class="w-4 h-4 text-indigo-400"></i>
-                                        </div>
-                                        <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi manual via WhatsApp Admin. Cocok untuk yang tidak memiliki E-Wallet/QRIS.</span>
-                                    </div>
-                                    <div class="absolute inset-0 border-2 border-indigo-600 rounded-xl pointer-events-none opacity-100 transition-opacity"></div>
-                                </label>
-
-                                <!-- DUITKU (AUTO) -->
-                                <label class="group relative flex items-start p-4 border-2 border-slate-100 rounded-xl cursor-pointer hover:border-slate-200 hover:bg-slate-50 transition-all duration-200" id="opt-duitku">
-                                    <input type="radio" name="payment_method" value="duitku" class="peer sr-only" onchange="selectPayment('duitku')">
-                                    <div class="flex-shrink-0 mt-0.5 mr-3">
-                                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center peer-checked:border-indigo-600 peer-checked:bg-indigo-600 transition-colors">
+                                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center peer-checked:border-indigo-600 peer-checked:bg-indigo-600 transition-colors group-hover:border-indigo-400">
                                             <div class="w-2.5 h-2.5 rounded-full bg-transparent peer-checked:bg-white transition-colors"></div>
                                         </div>
                                     </div>
                                     <div class="flex-1">
                                         <div class="flex justify-between items-center mb-1">
-                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors">QRIS / Virtual Account (Otomatis)</span>
+                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors peer-checked:text-indigo-700">Transfer Bank (Manual)</span>
+                                            <i data-lucide="arrow-left-right" class="w-4 h-4 text-indigo-400"></i>
+                                        </div>
+                                        <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi manual via WhatsApp Admin. Cocok untuk yang tidak memiliki E-Wallet/QRIS.</span>
+                                    </div>
+                                </label>
+
+                                <!-- DUITKU (AUTO) -->
+                                <label class="group relative flex items-start p-4 border-2 border-slate-100 rounded-xl cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-200 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 has-[:checked]:shadow-indigo-500/10" id="opt-duitku">
+                                    <input type="radio" name="payment_method" value="duitku" class="peer sr-only" onchange="selectPayment('duitku')">
+                                    <div class="flex-shrink-0 mt-0.5 mr-3">
+                                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center peer-checked:border-indigo-600 peer-checked:bg-indigo-600 transition-colors group-hover:border-indigo-400">
+                                            <div class="w-2.5 h-2.5 rounded-full bg-transparent peer-checked:bg-white transition-colors"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors peer-checked:text-indigo-700">QRIS / Virtual Account (Otomatis)</span>
                                             <div class="flex gap-1">
                                                 <i data-lucide="qr-code" class="w-4 h-4 text-slate-400"></i>
                                                 <i data-lucide="zap" class="w-4 h-4 text-amber-500 fill-amber-500"></i>
@@ -219,7 +236,6 @@
                                         </div>
                                         <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi Instan 24 Jam. Mendukung QRIS, ShopeePay, OVO, Dana, LinkAja & Semua Bank.</span>
                                     </div>
-                                    <div class="absolute inset-0 border-2 border-indigo-600 rounded-xl pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"></div>
                                 </label>
                             </div>
                         </div>
@@ -324,21 +340,45 @@
 
         function selectPayment(method) {
             selectedPayment = method;
-            const radio = document.querySelector(`input[name="payment_method"][value="${method}"]`);
-            if(radio) radio.checked = true;
+            // CSS handles the visual state via peer-checked
         }
 
         function renderCheckoutUI(r) {
             const p = r.data; sysPayment = r.payment;
             
+            // PIXEL INIT
+            try {
+                let pxId = sysPayment.pixel_id;
+                if(!pxId) {
+                    const g = JSON.parse(localStorage.getItem('melimpah_global_settings') || '{}');
+                    if(g.data && g.data.pixel_id) pxId = g.data.pixel_id;
+                }
+                if(pxId) {
+                    initPixel(pxId);
+                    setTimeout(() => {
+                        fbq('track', 'AddToCart', { 
+                            content_name: p.title, 
+                            content_ids: [p.id], 
+                            content_type: 'product',
+                            value: p.harga, 
+                            currency: 'IDR' 
+                        });
+                    }, 500);
+                }
+            } catch(e) {}
+
             // PAYMENT METHOD LOGIC
             const paySection = document.getElementById('payment-method-section');
             if(sysPayment.duitku_active) {
                 paySection.classList.remove('hidden');
-                selectPayment('bank'); // Default
+                // Ensure correct initial state
+                if(selectedPayment === 'bank') {
+                    document.querySelector('input[value="bank"]').checked = true;
+                }
             } else {
                 paySection.classList.add('hidden');
                 selectedPayment = 'bank';
+                document.querySelector('input[value="bank"]').checked = true;
             }
 
             if(r.aff_name && r.aff_name !== "") {
@@ -432,6 +472,10 @@
 
         document.getElementById('form-checkout').onsubmit = async (e) => {
             e.preventDefault();
+            
+            // PIXEL INITIATE CHECKOUT
+            if(typeof fbq === 'function') fbq('track', 'InitiateCheckout');
+
             const btn = document.getElementById('btn-submit'); 
             const originalHTML = btn.innerHTML;
 
@@ -514,6 +558,16 @@
                     // Menampilkan Tagihan dengan Kode Unik dari Server
                     document.getElementById('res-total').innerText = 'Rp ' + Number(r.tagihan).toLocaleString('id-ID');
                     
+                    // PIXEL PURCHASE (Assumption: Manual Transfer Order Created = Purchase Intent/Pending Purchase)
+                    if(typeof fbq === 'function') {
+                        fbq('track', 'Purchase', { 
+                            value: r.tagihan, 
+                            currency: 'IDR',
+                            content_ids: [pData.id_produk],
+                            content_type: 'product'
+                        });
+                    }
+
                     const siteNameElements = document.querySelectorAll('.dyn-site-name');
                     const dSiteName = siteNameElements.length > 0 ? siteNameElements[0].innerText : "Admin";
 
