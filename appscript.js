@@ -108,6 +108,20 @@ function doPost(e) {
         }
       }
 
+      // Validasi Signature (jika moota_secret diset di Settings)
+      const mootaSecret = String(getCfgFrom_(cfg, "moota_secret") || "").trim();
+      if (mootaSecret) {
+        const signature = (e.parameter && e.parameter.moota_signature) ? String(e.parameter.moota_signature).trim() : "";
+        if (signature) {
+          const computed = Utilities.computeHmacSha256Signature(payloadString, mootaSecret);
+          const computedHex = computed.map(function(chr){return (chr+256).toString(16).slice(-2)}).join("");
+          if (computedHex !== signature) {
+            return ContentService.createTextOutput("ERROR: Invalid Signature")
+              .setMimeType(ContentService.MimeType.TEXT);
+          }
+        }
+      }
+
       return handleMootaWebhook(data, cfg);
     }
 
@@ -1434,7 +1448,8 @@ function handleMootaWebhook(mutations, cfg) {
       // HANYA PROSES UANG MASUK (CR = Credit)
       if (type !== "cr" && type !== "credit") continue;
 
-      const nominalTransfer = toNumberSafe_(mutasi.amount);
+      // Gunakan parsing float agar support desimal (misal 50000.00)
+      const nominalTransfer = parseFloat(String(mutasi.amount || 0).replace(/[^0-9.-]/g, "")) || 0;
       if (nominalTransfer <= 0) continue;
 
       // Cari order Pending yang nominalnya SAMA PERSIS
