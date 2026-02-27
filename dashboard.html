@@ -738,11 +738,26 @@
 
         async function saveBioLink(event) {
             event.preventDefault();
+            
+            if (!userId) {
+                showToast("Sesi habis. Silakan login ulang.", "error");
+                setTimeout(() => window.location.href = 'login.html', 1500);
+                return;
+            }
+
             const btn = document.getElementById('btn-save-bio');
             const oriText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Loading...';
             lucide.createIcons();
+
+            const socials = {
+                fb: document.getElementById('bio-fb').value,
+                ig: document.getElementById('bio-ig').value,
+                twitter: document.getElementById('bio-twitter').value,
+                youtube: document.getElementById('bio-youtube').value,
+                tiktok: document.getElementById('bio-tiktok').value
+            };
 
             const payload = {
                 action: 'save_bio_link',
@@ -752,13 +767,7 @@
                 bio: document.getElementById('bio-desc').value,
                 wa: document.getElementById('bio-wa').value,
                 email: document.getElementById('bio-email').value,
-                socials: {
-                    fb: document.getElementById('bio-fb').value,
-                    ig: document.getElementById('bio-ig').value,
-                    twitter: document.getElementById('bio-twitter').value,
-                    youtube: document.getElementById('bio-youtube').value,
-                    tiktok: document.getElementById('bio-tiktok').value
-                }
+                socials: socials
             };
 
             try {

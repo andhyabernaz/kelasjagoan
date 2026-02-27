@@ -111,8 +111,13 @@
                     renderUserProfile(r.data);
                 } else {
                     // User not found or no bio -> Fallback to global
-                    console.log("User bio not found, falling back to global settings");
+                    console.warn("User bio not found for ID:", userId, "Response:", r);
                     loadGlobalSettings();
+                    
+                    // Optional: If debug mode
+                    if (urlParams.get('debug')) {
+                        alert("Debug: User bio not found. Check console for details.");
+                    }
                 }
             } catch (e) {
                 console.error("Error loading bio:", e);

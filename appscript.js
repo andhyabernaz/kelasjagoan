@@ -1587,8 +1587,9 @@ function forgotPassword(d) {
 ========================= */
 function saveBioLink(d) {
   try {
-    const s = mustSheet_("Bio_Links");
-    if (s.getLastRow() === 0) {
+    let s = ss.getSheetByName("Bio_Links");
+    if (!s) {
+      s = ss.insertSheet("Bio_Links");
       s.appendRow(["user_id", "photo_url", "display_name", "bio", "wa", "email", "socials_json", "updated_at"]);
     }
     
@@ -1599,7 +1600,7 @@ function saveBioLink(d) {
     let rowIdx = -1;
 
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === userId) {
+      if (String(data[i][0]).trim() === userId) {
         rowIdx = i + 1;
         break;
       }
@@ -1633,8 +1634,8 @@ function saveBioLink(d) {
 
 function getBioLink(d) {
   try {
-    const s = mustSheet_("Bio_Links");
-    if (s.getLastRow() === 0) return { status: "success", data: null };
+    const s = ss.getSheetByName("Bio_Links");
+    if (!s || s.getLastRow() === 0) return { status: "success", data: null };
 
     const data = s.getDataRange().getValues();
     const userId = String(d.user_id || "").trim();
@@ -1644,7 +1645,8 @@ function getBioLink(d) {
 
     if (userId) {
       for (let i = 1; i < data.length; i++) {
-        if (String(data[i][0]) === userId) {
+        // Case-insensitive & trimmed comparison for safety
+        if (String(data[i][0]).trim().toLowerCase() === userId.toLowerCase()) {
           result = {
             photo_url: data[i][1],
             display_name: data[i][2],
