@@ -156,6 +156,8 @@ function doPost(e) {
       case "delete_page": return jsonRes(deletePage(data));
       case "check_slug": return jsonRes(checkSlug(data));
       case "save_affiliate_pixel": return jsonRes(saveAffiliatePixel(data));
+      case "save_bio_link": return jsonRes(saveBioLink(data));
+      case "get_bio_link": return jsonRes(getBioLink(data));
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar: " + (action || "unknown") });
     }
   } catch (err) {
@@ -1575,6 +1577,89 @@ function forgotPassword(d) {
     }
     
     return { status: "error", message: "Email tidak ditemukan." };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   USER BIO LINK FUNCTIONS
+========================= */
+function saveBioLink(d) {
+  try {
+    const s = mustSheet_("Bio_Links");
+    if (s.getLastRow() === 0) {
+      s.appendRow(["user_id", "photo_url", "display_name", "bio", "wa", "email", "socials_json", "updated_at"]);
+    }
+    
+    const userId = String(d.user_id || "").trim();
+    if (!userId) return { status: "error", message: "User ID wajib ada" };
+
+    const data = s.getDataRange().getValues();
+    let rowIdx = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === userId) {
+        rowIdx = i + 1;
+        break;
+      }
+    }
+
+    const payload = [
+      userId,
+      d.photo_url || "",
+      d.display_name || "",
+      d.bio || "",
+      d.wa || "",
+      d.email || "",
+      JSON.stringify(d.socials || {}),
+      toISODate_()
+    ];
+
+    if (rowIdx > 0) {
+      // Update
+      const range = s.getRange(rowIdx, 1, 1, payload.length);
+      range.setValues([payload]);
+    } else {
+      // Insert
+      s.appendRow(payload);
+    }
+
+    return { status: "success", message: "Bio Link berhasil disimpan!" };
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function getBioLink(d) {
+  try {
+    const s = mustSheet_("Bio_Links");
+    if (s.getLastRow() === 0) return { status: "success", data: null };
+
+    const data = s.getDataRange().getValues();
+    const userId = String(d.user_id || "").trim();
+    
+    // Default Empty Data
+    let result = null;
+
+    if (userId) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][0]) === userId) {
+          result = {
+            photo_url: data[i][1],
+            display_name: data[i][2],
+            bio: data[i][3],
+            wa: data[i][4],
+            email: data[i][5],
+            socials: {}
+          };
+          try { result.socials = JSON.parse(data[i][6]); } catch(e) {}
+          break;
+        }
+      }
+    }
+    
+    return { status: "success", data: result };
   } catch (e) {
     return { status: "error", message: e.toString() };
   }
