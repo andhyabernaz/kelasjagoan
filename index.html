@@ -39,15 +39,16 @@
                     }
 
                     // INJEKSI LOGO URL
-                    if(data.site_logo) {
-                        const img = document.getElementById('dyn-site-logo');
-                        if (img) {
-                            img.src = data.site_logo;
-                            img.classList.remove('hidden');
-                        }
-                        const fb = document.getElementById('logo-fallback');
-                        if (fb) fb.classList.add('hidden');
+                if(data.site_logo) {
+                    const img = document.getElementById('dyn-site-logo');
+                    if (img) {
+                        img.src = data.site_logo;
+                        img.classList.remove('hidden');
+                        img.classList.add('block'); // Ensure it displays
                     }
+                    const fb = document.getElementById('logo-fallback');
+                    if (fb) fb.classList.add('hidden');
+                }
 
                     // INJEKSI KONTAK
                     if(data.contact_email) {
@@ -101,7 +102,7 @@
     </script>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cepat Digital Teknologi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -120,14 +121,15 @@
 <body class="bg-[#f8f9fa] text-slate-800">
 
     <header class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-           <div class="text-xl md:text-2xl font-black text-indigo-600 tracking-tighter uppercase flex items-center gap-3">
-                <img id="dyn-site-logo" src="" alt="" class="h-8 w-auto hidden select-none" loading="lazy">
-                <i id="logo-fallback" data-lucide="layers" class="w-6 h-6 md:w-8 md:h-8"></i>
-                <strong class="dyn-site-name">CEPAT DIGITAL TEKNOLOGI</strong>
+        <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center gap-4">
+           <div class="flex-1 flex items-center gap-3 min-w-0">
+                <img id="dyn-site-logo" src="" alt="" class="h-8 md:h-10 w-auto hidden select-none object-contain flex-shrink-0 transition-transform hover:scale-105" loading="lazy">
+                <i id="logo-fallback" data-lucide="layers" class="w-8 h-8 text-indigo-600 flex-shrink-0 transition-transform hover:rotate-12"></i>
+                <strong class="dyn-site-name text-lg md:text-2xl font-black text-indigo-600 tracking-tighter uppercase truncate block">CEPAT DIGITAL TEKNOLOGI</strong>
             </div>
-            <a href="login.html" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all">
-                Masuk <i data-lucide="arrow-right" class="inline w-4 h-4 ml-1"></i>
+            <a href="login.html" class="flex-shrink-0 bg-indigo-600 text-white px-5 py-2.5 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all flex items-center gap-2 group whitespace-nowrap">
+                <span>Masuk</span>
+                <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </a>
         </div>
     </header>
