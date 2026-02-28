@@ -399,6 +399,17 @@
             document.getElementById('prod-title').value = p.title;
             document.getElementById('prod-price').value = p.harga;
             
+            // LOGIC GRATIS / BERBAYAR
+            const isFree = (Number(p.harga) === 0);
+            if (isFree) {
+                document.getElementById('payment-method-section').classList.add('hidden');
+                document.getElementById('btn-submit').innerHTML = 'Dapatkan Akses Gratis <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>';
+                document.getElementById('display-total-top').innerText = 'GRATIS';
+                document.getElementById('display-total-top').classList.add('text-emerald-400');
+            } else {
+                document.getElementById('display-total-top').classList.remove('text-emerald-400');
+            }
+            
             const loader = document.getElementById('loading-state');
             if(loader.style.display !== 'none') {
                 loader.classList.add('opacity-0');
@@ -564,28 +575,59 @@
                     document.getElementById('success-state').classList.remove('hidden');
                     
                     document.getElementById('res-inv').innerText = '#' + r.invoice;
-                    document.getElementById('res-bank-name').innerText = sysPayment.bank_name;
-                    document.getElementById('res-bank-norek').innerText = sysPayment.bank_norek;
-                    document.getElementById('res-bank-owner').innerText = 'A.N ' + sysPayment.bank_owner;
                     
-                    // Menampilkan Tagihan dengan Kode Unik dari Server
-                    document.getElementById('res-total').innerText = 'Rp ' + Number(r.tagihan).toLocaleString('id-ID');
-                    
-                    // PIXEL PURCHASE (Assumption: Manual Transfer Order Created = Purchase Intent/Pending Purchase)
-                    if(typeof fbq === 'function') {
-                        fbq('track', 'Purchase', { 
-                            value: r.tagihan, 
-                            currency: 'IDR',
-                            content_ids: [pData.id_produk],
-                            content_type: 'product'
-                        });
+                    // LOGIC GRATIS / AUTO-LUNAS
+                    if (Number(r.tagihan) === 0) {
+                         // Update Header
+                         document.querySelector('#success-state h2').innerText = "Akses Aktif! 🎉";
+                         document.querySelector('#success-state p').innerText = "Selamat! Produk telah berhasil ditambahkan ke akun Anda.";
+                         
+                         // Replace Bank/Invoice Box with Access Info
+                         const bankBox = document.querySelector('#success-state > div.bg-slate-50');
+                         if(bankBox) {
+                             bankBox.innerHTML = `
+                                <div class="text-center py-8">
+                                    <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                                        <i data-lucide="unlock" class="w-10 h-10"></i>
+                                    </div>
+                                    <h3 class="text-2xl font-black text-slate-800 mb-2 tracking-tight">Akses Terbuka</h3>
+                                    <p class="text-slate-500 text-sm font-medium mb-8 px-4">Silakan cek WhatsApp/Email Anda untuk detail login dan link akses materi.</p>
+                                    
+                                    <div class="flex flex-col gap-3 px-6">
+                                        <a href="login.html" class="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">
+                                            <i data-lucide="log-in" class="w-4 h-4"></i> Login Member Area
+                                        </a>
+                                    </div>
+                                </div>
+                             `;
+                         }
+                         
+                         // Update WA Button
+                         const waText = `Halo Admin! 👋\n\nSaya sudah klaim produk gratis:\n\n📦 *Produk:* ${pData.nama_produk}\n👤 *Nama:* ${pData.nama}\n\nTerima kasih!`;
+                         const waBtn = document.getElementById('wa-btn');
+                         if(waBtn) {
+                             waBtn.href = `https://wa.me/${sysPayment.wa_admin}?text=${encodeURIComponent(waText)}`;
+                             waBtn.innerHTML = '<i data-lucide="message-circle" class="w-5 h-5"></i> Chat Admin';
+                             waBtn.classList.remove('bg-[#25D366]');
+                             waBtn.classList.add('bg-slate-800');
+                         }
+
+                    } else {
+                        // LOGIC BERBAYAR (ORIGINAL)
+                        document.getElementById('res-bank-name').innerText = sysPayment.bank_name;
+                        document.getElementById('res-bank-norek').innerText = sysPayment.bank_norek;
+                        document.getElementById('res-bank-owner').innerText = 'A.N ' + sysPayment.bank_owner;
+                        
+                        // Menampilkan Tagihan dengan Kode Unik dari Server
+                        document.getElementById('res-total').innerText = 'Rp ' + Number(r.tagihan).toLocaleString('id-ID');
+
+                        const siteNameElements = document.querySelectorAll('.dyn-site-name');
+                        const dSiteName = siteNameElements.length > 0 ? siteNameElements[0].innerText : "Admin";
+                        const waText = `Halo ${dSiteName}! 👋\n\nSaya mau konfirmasi pesanan:\n\n📌 *Invoice:* #${r.invoice}\n🛒 *Produk:* ${pData.nama_produk}\n💰 *Total Bayar:* Rp ${Number(r.tagihan).toLocaleString('id-ID')}\n👤 *Atas Nama:* ${pData.nama}\n\nMohon dicek ya Min. Terima kasih!`;
+                        document.getElementById('wa-btn').href = `https://wa.me/${sysPayment.wa_admin}?text=${encodeURIComponent(waText)}`;
                     }
-
-                    const siteNameElements = document.querySelectorAll('.dyn-site-name');
-                    const dSiteName = siteNameElements.length > 0 ? siteNameElements[0].innerText : "Admin";
-
-                    const waText = `Halo ${dSiteName}! 👋\n\nSaya mau konfirmasi pesanan:\n\n📌 *Invoice:* #${r.invoice}\n🛒 *Produk:* ${pData.nama_produk}\n💰 *Total Bayar:* Rp ${Number(r.tagihan).toLocaleString('id-ID')}\n👤 *Atas Nama:* ${pData.nama}\n\nMohon dicek ya Min. Terima kasih!`;
-                    document.getElementById('wa-btn').href = `https://wa.me/${sysPayment.wa_admin}?text=${encodeURIComponent(waText)}`;
+                    
+                    // PIXEL PURCHASE
 
                     if(r.is_new_user) {
                         document.getElementById('new-user-info').classList.remove('hidden');

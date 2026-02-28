@@ -310,7 +310,10 @@ function createOrder(d, cfg) {
     const aff = (d.affiliate && String(d.affiliate).trim() !== "") ? String(d.affiliate).trim() : "-";
 
     const hargaDasar = toNumberSafe_(d.harga);
-    if (hargaDasar <= 0) return { status: "error", message: "Harga tidak valid" };
+    
+    // MODIFIED: Allow 0 price (Free Product)
+    const isZeroPrice = hargaDasar === 0;
+    if (!isZeroPrice && hargaDasar <= 0) return { status: "error", message: "Harga tidak valid" };
 
     let komisiNominal = 0;
     
@@ -327,7 +330,7 @@ function createOrder(d, cfg) {
         }
     }
 
-    const kodeUnik = Math.floor(Math.random() * 900) + 100;
+    const kodeUnik = isZeroPrice ? 0 : (Math.floor(Math.random() * 900) + 100);
     const hargaTotalUnik = hargaDasar + kodeUnik;
 
     // Cek atau Buat User Baru
@@ -359,6 +362,8 @@ function createOrder(d, cfg) {
       uS.appendRow([newUserId, email, pass, d.nama, "member", "Active", toISODate_(), "-"]);
     }
 
+    const orderStatus = isZeroPrice ? "Lunas" : "Pending";
+
     // Simpan order (struktur kolom sama dengan script lu)
     oS.appendRow([
       inv,
@@ -368,13 +373,60 @@ function createOrder(d, cfg) {
       d.id_produk,
       d.nama_produk,
       hargaTotalUnik,
-      "Pending",
+      orderStatus,
       toISODate_(),
       aff,
       komisiNominal
     ]);
 
-    // --> NOTIFIKASI PEMBELI (WHATSAPP)
+    // ==========================================
+    // NOTIFIKASI (LOGIC CABANG: GRATIS vs BAYAR)
+    // ==========================================
+    
+    const adminWA = getCfgFrom_(cfg, "wa_admin");
+
+    if (isZeroPrice) {
+       // --- SKENARIO PRODUK GRATIS (AUTO LUNAS) ---
+       
+       // 1. Ambil Link Akses
+       let accessUrl = "";
+       const pS = mustSheet_("Access_Rules");
+       const pData = pS.getDataRange().getValues();
+       for (let k = 1; k < pData.length; k++) {
+         if (String(pData[k][0]) === String(d.id_produk)) { accessUrl = pData[k][3]; break; }
+       }
+       
+       // 2. WA ke User
+       const waText = `Halo *${d.nama}*, selamat datang di ${siteName}! 🎉\n\nSukses! Akses Anda untuk produk *${d.nama_produk}* telah aktif (GRATIS).\n\n🚀 *Klik link berikut untuk akses materi:*\n${accessUrl}\n\n🔐 *AKUN MEMBER AREA*\n🌐 Link: ${loginUrl}\n✉️ Email: ${email}\n🔑 Password: ${pass}\n\nTerima kasih!\n*Tim ${siteName}*`;
+       sendWA(d.whatsapp, waText, cfg);
+
+       // 3. Email ke User
+       const emailHtml = `
+       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <h2 style="color: #10b981;">Akses Produk Gratis Dibuka! 🎁</h2>
+          <p>Halo <b>${d.nama}</b>,</p>
+          <p>Selamat! Anda telah berhasil mendapatkan akses ke produk <b>${d.nama_produk}</b> secara GRATIS.</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+              <a href="${accessUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Akses Materi Sekarang</a>
+          </div>
+
+          <h3 style="color: #0f172a;">🔐 Akun Member Area</h3>
+          <p><b>Link:</b> <a href="${loginUrl}">${loginUrl}</a><br>
+          <b>Email:</b> ${email}<br>
+          <b>Password:</b> <code>${pass}</code></p>
+          
+          <p>Salam hangat,<br><b>Tim ${siteName}</b></p>
+       </div>`;
+       sendEmail(email, `Akses Gratis! Produk ${d.nama_produk}`, emailHtml, cfg);
+
+       // 4. Notif Admin
+       sendWA(adminWA, `🎁 *ORDER GRATIS BARU!* 🎁\n\n📌 *Invoice:* #${inv}\n📦 *Produk:* ${d.nama_produk}\n👤 *User:* ${d.nama}\n\nStatus: Lunas (Auto)`, cfg);
+
+    } else {
+       // --- SKENARIO BERBAYAR (PENDING) ---
+
+       // --> NOTIFIKASI PEMBELI (WHATSAPP)
     const waBuyerText =
 `Halo *${d.nama}*, salam hangat dari ${siteName}! 👋
 
@@ -456,9 +508,9 @@ Jika ada pertanyaan, silakan balas pesan ini. Terima kasih! 🙏`;
     sendEmail(email, `Menunggu Pembayaran: Pesanan #${inv} - ${siteName}`, emailBuyerHtml, cfg);
 
     // --> NOTIFIKASI ADMIN
-    const adminWA = getCfgFrom_(cfg, "wa_admin");
     const affMsg = aff !== "-" ? `\n🤝 *Affiliate:* ${aff}\n💸 *Potensi Komisi:* Rp ${Number(komisiNominal).toLocaleString('id-ID')}` : "";
     sendWA(adminWA, `🚨 *PESANAN BARU MASUK!* 🚨\n\n📌 *Invoice:* #${inv}\n📦 *Produk:* ${d.nama_produk}\n👤 *Customer:* ${d.nama}\n💳 *Nilai Unik:* Rp ${Number(hargaTotalUnik).toLocaleString('id-ID')}${affMsg}\n\nSilakan pantau pembayaran dari customer ini.`, cfg);
+    } // End of Else (Paid)
 
     return { status: "success", invoice: inv, tagihan: hargaTotalUnik, is_new_user: isNew, password: isNew ? pass : null };
   } catch (e) {
@@ -675,7 +727,7 @@ function getProducts(d, cfg, cachedOrders) {
   for (let i = 1; i < rules.length; i++) {
     if (String(rules[i][5]).trim() === "Active") {
       const pId = String(rules[i][0]);
-      const hasAccess = (toNumberSafe_(rules[i][4]) === 0 || lunasIds.includes(pId));
+      const hasAccess = lunasIds.includes(pId);
       const pObj = {
         id: pId,
         title: rules[i][1],
