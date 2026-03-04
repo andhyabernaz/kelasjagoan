@@ -658,6 +658,14 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Pilih Produk Bump (Opsional)</label>
+                    <select id="p-bump-id" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-slate-700">
+                        <option value="">-- Tidak ada --</option>
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-2">Produk yang dipilih akan muncul sebagai penawaran bump order.</p>
+                </div>
+
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
                     <div class="flex items-center gap-2 mb-3">
                         <i data-lucide="activity" class="w-4 h-4 text-indigo-500"></i>
@@ -1101,6 +1109,23 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             showToast('HTML berhasil diunduh!', 'success');
         }
 
+        function populateBumpOptions(currentId = null) {
+            const select = document.getElementById('p-bump-id');
+            select.innerHTML = '<option value="">-- Tidak ada --</option>';
+            
+            if (!cachedProducts) return;
+
+            cachedProducts.forEach(p => {
+                // Prevent self-selection
+                if (p[0] === currentId) return;
+                
+                const option = document.createElement('option');
+                option.value = p[0];
+                option.textContent = `${p[1]} (ID: ${p[0]})`;
+                select.appendChild(option);
+            });
+        }
+
         function editProd(id) { 
             const p = cachedProducts.find(x => x[0] === id); 
             if(!p) return; 
@@ -1116,6 +1141,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             updateProdPreview(imgUrl);
             
             document.getElementById('p-is-bump').checked = String(p[12]).toLowerCase() === 'true';
+
+            populateBumpOptions(id);
+            document.getElementById('p-bump-id').value = p[13] || "";
 
             // Meta Pixel
             document.getElementById('p-pixel-id').value = p[8] || '';
@@ -1306,7 +1334,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             }
         }
 
-        function openProdModal() { document.getElementById('form-prod').reset(); updateProdPreview(''); document.getElementById('p-is-edit').value = 'false'; document.getElementById('modal-prod').classList.remove('hidden'); }
+        function openProdModal() { document.getElementById('form-prod').reset(); updateProdPreview(''); document.getElementById('p-is-edit').value = 'false'; populateBumpOptions(null); document.getElementById('modal-prod').classList.remove('hidden'); }
         function openPageModal() { document.getElementById('form-page').reset(); document.getElementById('pg-is-edit').value = 'false'; document.getElementById('modal-page').classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function logout() { sessionStorage.clear(); localStorage.removeItem(CACHE_KEY_ADMIN); location.reload(); }
@@ -1362,6 +1390,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 pixel_token: document.getElementById('p-pixel-token').value,
                 pixel_test_code: document.getElementById('p-pixel-test').value,
                 is_bump: document.getElementById('p-is-bump').checked.toString(),
+                bump_product_id: document.getElementById('p-bump-id').value,
                 status: 'Active', 
                 is_edit: document.getElementById('p-is-edit').value === 'true' 
             }; 

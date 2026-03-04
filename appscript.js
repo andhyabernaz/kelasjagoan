@@ -672,10 +672,6 @@ function getProductDetail(d, cfg) {
        const apS = ss.getSheetByName("Affiliate_Pixels");
        if (apS) {
            const apR = apS.getDataRange().getValues();
-           // Find user_id from ref (assuming ref IS user_id)
-           // If ref is username/email, we might need to resolve it first.
-           // Assuming ref is user_id for simplicity as per previous logic.
-           
            for(let i=1; i<apR.length; i++) {
                if (String(apR[i][0]) === ref && String(apR[i][1]) === id) {
                    userPixelData = {
@@ -691,6 +687,25 @@ function getProductDetail(d, cfg) {
 
     for (let i = 1; i < r.length; i++) {
       if (String(r[i][0]).trim() === id) {
+        
+        // 🚀 BUMP ORDER LOGIC: Resolve Bump Product Details
+        let bumpData = null;
+        const bumpId = String(r[i][13] || "").trim(); // Col 14: Bump Product ID
+        if (bumpId) {
+            for (let k = 1; k < r.length; k++) {
+                if (String(r[k][0]).trim() === bumpId) {
+                    bumpData = {
+                        id: r[k][0],
+                        title: r[k][1],
+                        desc: r[k][2],
+                        harga: toNumberSafe_(r[k][4]),
+                        image: r[k][7] || ""
+                    };
+                    break;
+                }
+            }
+        }
+
         return { 
             status: "success", 
             data: {
@@ -702,7 +717,10 @@ function getProductDetail(d, cfg) {
                 image: r[i][7] || "", // Image URL
                 pixel_id: (userPixelData && userPixelData.id) ? userPixelData.id : (r[i][8] || ""),
                 pixel_token: (userPixelData && userPixelData.token) ? userPixelData.token : (r[i][9] || ""),
-                pixel_test_code: (userPixelData && userPixelData.test_code) ? userPixelData.test_code : (r[i][10] || "")
+                pixel_test_code: (userPixelData && userPixelData.test_code) ? userPixelData.test_code : (r[i][10] || ""),
+                is_bump: String(r[i][12] || "").toLowerCase() === "true",
+                bump_product_id: bumpId,
+                bump_product: bumpData
             }
         };
       }
@@ -735,7 +753,8 @@ function getProducts(d, cfg) {
                title: r[i][1],
                harga: toNumberSafe_(r[i][4]), // Fix: Rename price -> harga & sanitize
                image: r[i][7] || "",
-               is_bump: String(r[i][12] || "").toLowerCase() === "true"
+               is_bump: String(r[i][12] || "").toLowerCase() === "true",
+               bump_product_id: String(r[i][13] || "").trim()
            });
         }
       }
@@ -1020,17 +1039,17 @@ function saveProduct(d) {
   try {
     const s = mustSheet_("Access_Rules");
     
-    // Ensure we have enough columns (13 columns needed)
-    if (s.getMaxColumns() < 13) s.insertColumnsAfter(s.getMaxColumns(), 13 - s.getMaxColumns());
+    // Ensure we have enough columns (14 columns needed)
+    if (s.getMaxColumns() < 14) s.insertColumnsAfter(s.getMaxColumns(), 14 - s.getMaxColumns());
     
-    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url, d.pixel_id, d.pixel_token, d.pixel_test_code, d.commission, d.is_bump];
+    const dataRow = [d.id, d.title, d.desc, d.url, d.harga, d.status, d.lp_url, d.image_url, d.pixel_id, d.pixel_token, d.pixel_test_code, d.commission, d.is_bump, d.bump_product_id];
     const isEdit = String(d.is_edit) === "true";
 
     if (isEdit) {
       const r = s.getDataRange().getValues();
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][0]).trim() === String(d.id).trim()) {
-          s.getRange(i + 1, 1, 1, 13).setValues([dataRow]);
+          s.getRange(i + 1, 1, 1, 14).setValues([dataRow]);
           return { status: "success" };
         }
       }
