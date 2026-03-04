@@ -491,6 +491,7 @@
             
             // --- BUMP & SOCIAL PROOF ---
             if (r.bump_product && String(r.bump_product.id) !== String(p.id)) {
+                console.log("Bump Product Found:", r.bump_product);
                 bumpData = r.bump_product;
                 const bWidget = document.getElementById('bump-widget');
                 if(bWidget) {
@@ -611,14 +612,19 @@
         async function loadProduct() {
             if(!productId) { window.location.href = 'index.html'; return; }
             
+            // Debug Mode
+            const isDebug = urlParams.get('debug') === 'true';
+            
             const affId = localStorage.getItem('melimpah_affiliate');
             const cachedData = localStorage.getItem(PRODUCT_CACHE_KEY);
             let prefilled = false;
 
             // 1. CEK CACHE CHECKOUT (Trik Optimistic UI langsung panggil form)
-            if (cachedData) {
-                renderCheckoutUI(JSON.parse(cachedData));
-                prefilled = true;
+            if (cachedData && !isDebug) {
+                try {
+                    renderCheckoutUI(JSON.parse(cachedData));
+                    prefilled = true;
+                } catch(e) { console.error("Cache parse error", e); }
             } else {
                 // Pinjam data dari Katalog agar Loading Hitam langsung hilang
                 try {

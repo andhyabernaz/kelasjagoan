@@ -735,7 +735,7 @@ function getProducts(d, cfg) {
   try {
     // 1. Try Cache First (Performance Optimization)
     const cache = CacheService.getScriptCache();
-    const cacheKey = "products_public_all";
+    const cacheKey = "products_public_all_v2";
     let list = [];
     const cached = cache.get(cacheKey);
 

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bump Order Diagnostic Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="config.js"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-6 font-sans">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 border border-slate-200">
+        <h1 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
+            <i data-lucide="activity" class="text-indigo-600"></i> Diagnostic Tool
+        </h1>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Product ID to Test</label>
+                <div class="flex gap-2">
+                    <input type="text" id="prod-id" class="flex-1 border border-slate-300 rounded-lg px-4 py-2" placeholder="e.g. P-12345">
+                    <button onclick="runDiagnostic()" id="btn-run" class="bg-indigo-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-indigo-700 transition">RUN TEST</button>
+                </div>
+            </div>
+
+            <div id="results" class="hidden space-y-4 mt-6">
+                <div class="p-4 bg-slate-100 rounded-lg font-mono text-xs overflow-auto max-h-60 border border-slate-300">
+                    <pre id="log-output">Waiting for input...</pre>
+                </div>
+
+                <div id="status-box" class="p-4 rounded-lg border hidden">
+                    <h3 class="font-bold text-lg mb-2">Status Analysis</h3>
+                    <ul id="status-list" class="list-disc pl-5 space-y-1 text-sm"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function log(msg) {
+            const pre = document.getElementById('log-output');
+            pre.innerText += '\n' + msg;
+            pre.scrollTop = pre.scrollHeight;
+            console.log(msg);
+        }
+
+        async function runDiagnostic() {
+            const id = document.getElementById('prod-id').value.trim();
+            if(!id) return alert('Masukkan Product ID');
+
+            const btn = document.getElementById('btn-run');
+            btn.disabled = true;
+            btn.innerText = 'RUNNING...';
+            
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('log-output').innerText = 'Starting diagnostic for ID: ' + id;
+            const statusList = document.getElementById('status-list');
+            statusList.innerHTML = '';
+            const statusBox = document.getElementById('status-box');
+            statusBox.className = 'p-4 rounded-lg border hidden';
+
+            try {
+                // 1. Check Config
+                log('[1] Checking Configuration...');
+                if(typeof SCRIPT_URL === 'undefined') {
+                    log('ERROR: SCRIPT_URL not found in config.js');
+                    throw new Error('Config missing');
+                }
+                log('SCRIPT_URL: ' + SCRIPT_URL);
+
+                // 2. Fetch Product Data
+                log('[2] Fetching Product Data from Backend...');
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'get_product', id: id })
+                });
+                
+                const data = await res.json();
+                log('Response received: ' + JSON.stringify(data, null, 2));
+
+                statusBox.classList.remove('hidden');
+                
+                if(data.status !== 'success') {
+                    statusBox.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
+                    statusList.innerHTML += `<li>API Error: ${data.message}</li>`;
+                } else {
+                    const p = data.data;
+                    statusBox.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+                    statusList.innerHTML += `<li>Product Found: ${p.title} (${p.id})</li>`;
+                    
+                    // Check Bump
+                    if(p.bump_product_id) {
+                        statusList.innerHTML += `<li>Bump ID Configured: ${p.bump_product_id}</li>`;
+                        if(p.bump_product) {
+                            statusList.innerHTML += `<li>Bump Product Data: FOUND (${p.bump_product.title})</li>`;
+                            statusList.innerHTML += `<li><b>SUCCESS:</b> Bump Order should appear on checkout.</li>`;
+                        } else {
+                            statusList.innerHTML += `<li class="font-bold text-red-600">FAILURE: Bump Product Data is NULL! (Check if Bump Product ID exists and is Active)</li>`;
+                        }
+                    } else {
+                        statusList.innerHTML += `<li class="text-amber-600">No Bump Order configured for this product.</li>`;
+                    }
+                }
+
+            } catch(e) {
+                log('FATAL ERROR: ' + e.message);
+                statusList.innerHTML += `<li>Exception: ${e.message}</li>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'RUN TEST';
+            }
+        }
+    </script>
+</body>
+</html>
