@@ -152,6 +152,24 @@
                     <li class="flex items-center gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i> Akses Member Area Lifetime</li>
                     <li class="flex items-center gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i> Verifikasi Pembayaran Cepat</li>
                 </ul>
+
+                <!-- SOCIAL PROOF PROGRESS BAR -->
+                <div id="social-proof-bar" class="hidden mt-8 bg-white/5 rounded-xl p-4 border border-white/10 backdrop-blur-sm">
+                    <div class="flex justify-between items-center mb-2 text-[10px] font-bold uppercase tracking-widest text-indigo-300">
+                        <span>Penawaran Terbatas</span>
+                        <span id="proof-text">85% Terjual</span>
+                    </div>
+                    <div class="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden mb-3">
+                        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full w-[85%] animate-pulse"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-medium flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span class="text-white font-bold">14 orang</span> sedang melihat halaman ini.
+                    </p>
+                </div>
             </div>
 
             <div class="relative z-10 mt-16 pt-8 border-t border-white/10">
@@ -237,6 +255,27 @@
                                         <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi Instan 24 Jam. Mendukung QRIS, ShopeePay, OVO, Dana, LinkAja & Semua Bank.</span>
                                     </div>
                                 </label>
+                            </div>
+                        </div>
+
+                        <!-- BUMP ORDER WIDGET -->
+                        <div id="bump-widget" class="hidden mb-8 bg-amber-50/50 border-2 border-amber-200 rounded-xl p-5 relative overflow-hidden transition-all hover:shadow-lg hover:border-amber-400 group cursor-pointer" onclick="document.getElementById('bump-check').click()">
+                            <div class="absolute -right-6 -top-6 bg-amber-300 w-24 h-24 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500"></div>
+                            <div class="flex items-start gap-4 relative z-10">
+                                <div class="relative flex items-center justify-center mt-1 shrink-0">
+                                    <input type="checkbox" id="bump-check" class="peer sr-only" onchange="toggleBump(event)">
+                                    <div class="w-6 h-6 border-2 border-slate-300 rounded-md bg-white peer-checked:bg-indigo-600 peer-checked:border-indigo-600 transition-all flex items-center justify-center shadow-sm">
+                                        <i data-lucide="check" class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity transform scale-75 peer-checked:scale-100"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 select-none">
+                                    <div class="flex flex-wrap justify-between items-center mb-1 gap-2">
+                                        <span class="font-black text-slate-900 text-sm tracking-tight group-hover:text-indigo-700 transition-colors">Yes! Tambahkan Penawaran Spesial Ini</span>
+                                        <span class="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm animate-pulse tracking-widest uppercase">Hemat 70%</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 leading-relaxed mb-3 font-medium">Dapatkan <span id="bump-title" class="font-bold text-slate-900">...</span> hanya dengan tambahan <span id="bump-price-display" class="font-black text-emerald-600 bg-emerald-50 px-1 rounded">Rp ...</span> <span class="text-[10px] text-slate-400 line-through ml-1" id="bump-strike-price">Rp ...</span></p>
+                                    <p class="text-[10px] text-slate-400 italic bg-white/50 inline-block px-2 py-1 rounded border border-slate-100">"Penawaran ini tidak akan muncul lagi setelah Anda menutup halaman ini."</p>
+                                </div>
                             </div>
                         </div>
 
@@ -344,6 +383,82 @@
 
         const PRODUCT_CACHE_KEY = 'melimpah_product_' + productId;
 
+        // --- A/B TESTING & ANALYTICS ---
+        const variant = Math.random() < 0.5 ? 'A' : 'B';
+        console.log("Current Variant:", variant);
+
+        async function trackEvent(name, val = 0) {
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                if(!targetUrl) return;
+                
+                await fetch(targetUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'log_event',
+                        event_name: name,
+                        product_id: productId,
+                        bump_id: bumpData ? bumpData.id : '-',
+                        variant: variant,
+                        value: val,
+                        ref: localStorage.getItem('melimpah_affiliate') || '-'
+                    })
+                });
+            } catch(e) { console.log("Tracking Error", e); }
+        }
+
+        // --- BUMP & UPSELL VARIABLES ---
+        let bumpData = null;
+        let isBumpChecked = false;
+        let upsellShown = false;
+
+        function toggleBump(e) {
+            isBumpChecked = e.target.checked;
+            updateTotal();
+            if(isBumpChecked) trackEvent('Bump_Checked', Number(bumpData.harga));
+        }
+        
+        function updateTotal() {
+            const basePrice = Number(document.getElementById('prod-price').value);
+            let total = basePrice;
+            if (isBumpChecked && bumpData) {
+                total += Number(bumpData.harga);
+            }
+            const fmt = (total === 0) ? 'GRATIS' : 'Rp ' + total.toLocaleString('id-ID');
+            document.getElementById('display-total-top').innerText = fmt;
+            if(document.getElementById('res-total')) document.getElementById('res-total').innerText = fmt;
+        }
+
+        function closeUpsell() {
+            document.getElementById('upsell-modal').classList.add('hidden');
+            document.getElementById('upsell-modal').classList.remove('flex');
+            trackEvent('Upsell_Reject');
+            // Continue submit without bump
+            isBumpChecked = false;
+            if(document.getElementById('bump-check')) document.getElementById('bump-check').checked = false;
+            // Re-trigger submit (upsellShown is already true)
+            const form = document.getElementById('form-checkout');
+            if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', {cancelable: true}));
+        }
+
+        function rejectUpsell() {
+            closeUpsell();
+        }
+
+        function acceptUpsell() {
+             document.getElementById('upsell-modal').classList.add('hidden');
+             document.getElementById('upsell-modal').classList.remove('flex');
+             trackEvent('Upsell_Accept', Number(bumpData.harga));
+             
+             isBumpChecked = true;
+             if(document.getElementById('bump-check')) document.getElementById('bump-check').checked = true;
+             updateTotal();
+             
+             // Immediate submit for One-Click Upsell experience
+             const form = document.getElementById('form-checkout');
+             if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', {cancelable: true}));
+        }
+
         function selectPayment(method) {
             selectedPayment = method;
             // CSS handles the visual state via peer-checked
@@ -398,6 +513,62 @@
             document.getElementById('prod-id').value = p.id;
             document.getElementById('prod-title').value = p.title;
             document.getElementById('prod-price').value = p.harga;
+            
+            // --- BUMP & SOCIAL PROOF ---
+            if (r.bump_product && String(r.bump_product.id) !== String(p.id)) {
+                bumpData = r.bump_product;
+                const bWidget = document.getElementById('bump-widget');
+                if(bWidget) {
+                    bWidget.classList.remove('hidden');
+                    if(document.getElementById('bump-title')) document.getElementById('bump-title').innerText = bumpData.title;
+                    const bPrice = Number(bumpData.harga);
+                    if(document.getElementById('bump-price-display')) document.getElementById('bump-price-display').innerText = 'Rp ' + bPrice.toLocaleString('id-ID');
+                    if(document.getElementById('bump-strike-price')) document.getElementById('bump-strike-price').innerText = 'Rp ' + (bPrice * 2).toLocaleString('id-ID');
+                    
+                    // A/B TESTING VARIANT
+                    if (variant === 'B') {
+                        // Variant B: Softer, Scarcity
+                        document.querySelector('#bump-widget span.bg-red-500').innerText = 'Penawaran Terbatas';
+                        document.querySelector('#bump-widget span.bg-red-500').className = 'bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm tracking-widest uppercase';
+                        document.querySelector('#bump-widget .text-slate-900.text-sm').innerText = 'Lengkapi Pesanan Anda?';
+                    }
+
+                    trackEvent('Bump_Impression');
+
+                    // Upsell Modal Data
+                    if(document.getElementById('upsell-title')) document.getElementById('upsell-title').innerText = bumpData.title;
+                    if(document.getElementById('upsell-price')) document.getElementById('upsell-price').innerText = 'Rp ' + bPrice.toLocaleString('id-ID');
+                    if(document.getElementById('upsell-strike-price')) document.getElementById('upsell-strike-price').innerText = 'Rp ' + (bPrice * 2).toLocaleString('id-ID');
+                }
+                
+                // Social Proof Bar
+                const spBar = document.getElementById('social-proof-bar');
+                if(spBar) {
+                    spBar.classList.remove('hidden');
+                    
+                    // Logic: Base 60% + (Sales Count * 0.5)%, Max 98%
+                    const realCount = r.sales_count || 0;
+                    let soldPct = 60 + (realCount * 0.5);
+                    if (soldPct > 98) soldPct = 98;
+                    soldPct = Math.floor(soldPct);
+
+                    if(document.getElementById('proof-text')) document.getElementById('proof-text').innerText = soldPct + '% Terjual';
+                    
+                    // Update progress bar width
+                    const progBar = spBar.querySelector('.bg-gradient-to-r');
+                    if(progBar) progBar.style.width = soldPct + '%';
+                    
+                    // Update visitor count (pseudo-random based on real count)
+                    const viewing = Math.max(5, (realCount % 15) + 3);
+                    const viewerSpan = spBar.querySelector('span.text-white.font-bold');
+                    if(viewerSpan) viewerSpan.innerText = viewing + " orang";
+                }
+            } else {
+                 if(document.getElementById('bump-widget')) document.getElementById('bump-widget').classList.add('hidden');
+                 if(document.getElementById('social-proof-bar')) document.getElementById('social-proof-bar').classList.add('hidden');
+            }
+            
+            trackEvent('PageView');
             
             // LOGIC GRATIS / BERBAYAR
             const isFree = (Number(p.harga) === 0);
@@ -464,10 +635,14 @@
                     showToast('Sistem belum terhubung dengan server.', 'error');
                     return;
                 }
+                // Try to get email from logged in session or URL param
+                const uData = JSON.parse(localStorage.getItem('melimpah_user') || '{}');
+                const sessEmail = uData.email || (new URLSearchParams(window.location.search)).get('email') || '';
+
                 const res = await fetch(targetUrl, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'get_product', id: productId, aff_id: affId }) 
+                    body: JSON.stringify({ action: 'get_product', id: productId, aff_id: affId, email: sessEmail }) 
                 });
                 const r = await res.json();
                 
@@ -489,6 +664,15 @@
 
         document.getElementById('form-checkout').onsubmit = async (e) => {
             e.preventDefault();
+            
+            // --- UPSELL TRIGGER ---
+            if (bumpData && !isBumpChecked && !upsellShown) {
+                upsellShown = true;
+                const modal = document.getElementById('upsell-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                return; // Stop submission to show modal
+            }
             
             // PIXEL INITIATE CHECKOUT
             if(typeof fbq === 'function') {
@@ -514,6 +698,10 @@
             btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> MEMPROSES...'; 
             btn.disabled = true; lucide.createIcons();
 
+            const basePrice = Number(document.getElementById('prod-price').value);
+            let finalPrice = basePrice;
+            if (isBumpChecked && bumpData) finalPrice += Number(bumpData.harga);
+
             const pData = {
                 action: 'create_order',
                 nama: document.getElementById('cust-name').value,
@@ -521,8 +709,9 @@
                 whatsapp: document.getElementById('cust-wa').value,
                 id_produk: document.getElementById('prod-id').value,
                 nama_produk: document.getElementById('prod-title').value,
-                harga: document.getElementById('prod-price').value,
-                affiliate: localStorage.getItem('melimpah_affiliate') || "-" 
+                harga: finalPrice,
+                affiliate: localStorage.getItem('melimpah_affiliate') || "-",
+                bump_id: (isBumpChecked && bumpData) ? bumpData.id : null
             };
 
             try {
@@ -693,5 +882,42 @@
             } catch(e) {}
         };
     </script>
+    <!-- UPSELL MODAL -->
+    <div id="upsell-modal" class="fixed inset-0 z-[100] hidden flex-col items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm transition-opacity" onclick="closeUpsell()"></div>
+        <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fade-in-up transform transition-all scale-100">
+            <div class="bg-indigo-600 p-8 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-white/20 to-transparent"></div>
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500 rounded-full blur-2xl opacity-50"></div>
+                <div class="relative z-10">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm shadow-inner ring-4 ring-white/10 animate-bounce">
+                        <i data-lucide="gift" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-white uppercase tracking-tight mb-1">Tunggu Sebentar! ✋</h3>
+                    <p class="text-indigo-100 text-xs font-medium tracking-wide">Jangan lewatkan penawaran eksklusif ini</p>
+                </div>
+            </div>
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Tambahkan ke order Anda:</p>
+                    <h4 id="upsell-title" class="text-lg font-black text-slate-800 mb-2 leading-tight">...</h4>
+                    <div class="flex items-center justify-center gap-2 mb-1">
+                        <span class="text-sm text-slate-400 line-through font-medium" id="upsell-strike-price">...</span>
+                        <span class="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">-50% OFF</span>
+                    </div>
+                    <p class="text-3xl font-black text-emerald-600 tracking-tighter" id="upsell-price">...</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="acceptUpsell()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-indigo-700 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30 group">
+                        <i data-lucide="plus-circle" class="w-4 h-4 group-hover:rotate-90 transition-transform"></i> Ya, Tambahkan Sekarang
+                    </button>
+                    <button onclick="rejectUpsell()" class="w-full bg-white border-2 border-slate-100 text-slate-400 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-slate-50 hover:text-slate-500 hover:border-slate-200 transition-colors">
+                        Tidak, terima kasih. Saya tidak butuh ini.
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

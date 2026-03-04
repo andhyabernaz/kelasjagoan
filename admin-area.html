@@ -232,6 +232,9 @@
                 <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
                     <i data-lucide="settings" class="w-5 h-5"></i> Pengaturan
                 </button>
+                <button onclick="switchTab('sync')" id="nav-sync" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i> Sinkronisasi
+                </button>
             </nav>
 
             <div class="p-4 border-t border-slate-100 bg-slate-50/50">
@@ -535,6 +538,67 @@
                     </div>
                 </div>
 
+                <!-- SYNC TAB -->
+                <div id="tab-sync" class="tab-content">
+                    <div class="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-sm mb-8 relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-2">Sinkronisasi Sistem</h3>
+                            <p class="text-slate-500 text-sm mb-8 max-w-md">Otomatisasi update URL Web App ke config.js via GitHub API.</p>
+                            
+                            <form id="form-github-sync" class="space-y-6 max-w-3xl">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="md:col-span-2">
+                                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">GitHub Personal Access Token (PAT)</label>
+                                        <input type="password" id="gh-token" placeholder="ghp_..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-sm">
+                                        <p class="text-[10px] text-slate-400 mt-2">Token harus memiliki izin 'repo' scope.</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Username / Owner</label>
+                                        <input type="text" id="gh-owner" placeholder="e.g. andhyabernaz" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-medium text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Repository Name</label>
+                                        <input type="text" id="gh-repo" placeholder="e.g. kelasjagoan" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-medium text-sm">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">File Path</label>
+                                        <input type="text" id="gh-path" value="config.js" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-sm">
+                                    </div>
+                                    
+                                    <div class="md:col-span-2 pt-2 flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                                        <div>
+                                            <label class="text-xs font-bold text-indigo-800 uppercase tracking-wider block">Auto-Sync (Setiap Jam)</label>
+                                            <p class="text-[10px] text-indigo-600 mt-1">Sistem akan mengecek dan memperbarui URL config.js setiap jam.</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="toggle-auto-sync" class="sr-only peer" onchange="toggleAutoSyncState()">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-100">
+                                    <button type="submit" class="bg-slate-800 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-slate-900 transition-all text-xs uppercase tracking-wide">
+                                        <i data-lucide="save" class="w-4 h-4 inline-block mr-2"></i> Simpan Konfigurasi
+                                    </button>
+                                    <button type="button" id="btn-sync-now" onclick="triggerSyncUrl()" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-xs uppercase tracking-wide">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 inline-block mr-2"></i> Sync URL Sekarang
+                  </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900 text-slate-300 p-8 rounded-[2rem] font-mono text-xs overflow-hidden shadow-inner">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4">
+                            <h4 class="font-bold text-white uppercase tracking-widest">System Logs</h4>
+                            <span id="log-status" class="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400">Ready</span>
+                        </div>
+                        <div id="sync-logs" class="h-48 overflow-y-auto custom-scroll space-y-2">
+                            <p class="text-slate-500">Log aktivitas sinkronisasi akan muncul di sini...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -603,6 +667,14 @@
                 <div>
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Link Akses Materi</label>
                     <input type="text" id="p-url" placeholder="https://..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium" required>
+                </div>
+
+                <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-center gap-3">
+                    <input type="checkbox" id="p-is-bump" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300">
+                    <div>
+                        <label for="p-is-bump" class="text-sm font-bold text-slate-700 block cursor-pointer">Jadikan Bump Order</label>
+                        <p class="text-xs text-slate-500">Produk ini akan ditawarkan sebagai tambahan opsional di halaman checkout.</p>
+                    </div>
                 </div>
 
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
@@ -1065,6 +1137,8 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.getElementById('p-image').value = imgUrl;
             updateProdPreview(imgUrl);
             
+            document.getElementById('p-is-bump').checked = String(p[12]).toLowerCase() === 'true';
+
             // Meta Pixel
             document.getElementById('p-pixel-id').value = p[8] || '';
             document.getElementById('p-pixel-token').value = p[9] || '';
@@ -1214,6 +1288,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             document.getElementById('tab-title').innerText = titles[t] || 'Dashboard';
             lucide.createIcons();
             if(t === 'media') loadMediaFiles(); // Auto load media
+            if(t === 'sync') loadGithubConfig(); // Auto load GitHub config
             if(window.innerWidth < 768) toggleSidebar(); 
         }
 
@@ -1308,6 +1383,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 pixel_id: document.getElementById('p-pixel-id').value,
                 pixel_token: document.getElementById('p-pixel-token').value,
                 pixel_test_code: document.getElementById('p-pixel-test').value,
+                is_bump: document.getElementById('p-is-bump').checked.toString(),
                 status: 'Active', 
                 is_edit: document.getElementById('p-is-edit').value === 'true' 
             }; 
@@ -1371,6 +1447,133 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         async function normalizeUsers() {
             await submitFormToGAS('form-sys', { action: 'normalize_users' }, 'Kolom Users tersinkron!');
         }
+
+        async function loadGithubConfig() {
+            try {
+                // Load GitHub Config
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'get_github_config' })
+                });
+                const r = await res.json();
+                if (r.status === 'success' && r.config) {
+                    // Populate form fields
+                    // Note: Token is not returned for security reasons, only placeholder if exists
+                    document.getElementById('gh-owner').value = r.config.owner || '';
+                    document.getElementById('gh-repo').value = r.config.repo || '';
+                    document.getElementById('gh-path').value = r.config.path || 'config.js';
+                    if (r.config.has_token) {
+                        document.getElementById('gh-token').placeholder = "Token tersimpan (biarkan kosong jika tidak ingin mengubah)";
+                    }
+                }
+
+                // Load Auto-Sync Status
+                const resSync = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'get_auto_sync_status' })
+                });
+                const rSync = await resSync.json();
+                if (rSync.status === 'success') {
+                    document.getElementById('toggle-auto-sync').checked = rSync.enabled;
+                }
+
+            } catch (e) {
+                console.error("Gagal memuat konfigurasi GitHub", e);
+            }
+        }
+
+        async function toggleAutoSyncState() {
+            const toggle = document.getElementById('toggle-auto-sync');
+            const enabled = toggle.checked;
+            
+            // Disable toggle while processing
+            toggle.disabled = true;
+            
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'toggle_auto_sync', enabled: enabled })
+                });
+                const r = await res.json();
+                
+                if (r.status === 'success') {
+                    showToast(r.message, 'success');
+                } else {
+                    showToast(r.message, 'error');
+                    // Revert toggle if failed
+                    toggle.checked = !enabled;
+                }
+            } catch (e) {
+                showToast('Gagal mengubah status Auto-Sync: ' + e.toString(), 'error');
+                toggle.checked = !enabled;
+            } finally {
+                toggle.disabled = false;
+            }
+        }
+
+        async function triggerSyncUrl() {
+            const btn = document.getElementById('btn-sync-now');
+            const originalText = btn.innerHTML;
+            const logStatus = document.getElementById('log-status');
+            const logContainer = document.getElementById('sync-logs');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mr-2"></i> Syncing...';
+            lucide.createIcons();
+            
+            logStatus.innerText = "Running...";
+            logStatus.className = "text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded animate-pulse";
+            logContainer.innerHTML = '<p class="text-slate-400 italic">Memulai proses sinkronisasi...</p>';
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'sync_frontend_url' })
+                });
+                const r = await res.json();
+                
+                if (r.status === 'success') {
+                    showToast(r.message, 'success');
+                    logStatus.innerText = "Success";
+                    logStatus.className = "text-[10px] bg-green-500/20 text-green-500 px-2 py-1 rounded";
+                } else {
+                    showToast(r.message, 'error');
+                    logStatus.innerText = "Failed";
+                    logStatus.className = "text-[10px] bg-red-500/20 text-red-500 px-2 py-1 rounded";
+                }
+
+                if (r.logs && r.logs.length > 0) {
+                    logContainer.innerHTML = r.logs.map(l => `<div class="border-b border-slate-800 py-1 last:border-0">${l}</div>`).join('');
+                } else {
+                    logContainer.innerHTML += '<br><span class="text-slate-500">Selesai.</span>';
+                }
+
+            } catch (e) {
+                showToast('Gagal melakukan sinkronisasi: ' + e.toString(), 'error');
+                logStatus.innerText = "Error";
+                logStatus.className = "text-[10px] bg-red-500/20 text-red-500 px-2 py-1 rounded";
+                logContainer.innerHTML += `<div class="text-red-400 mt-2">Error: ${e.toString()}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        }
+
+        document.getElementById('form-github-sync').onsubmit = async (e) => {
+            e.preventDefault();
+            const p = {
+                token: document.getElementById('gh-token').value,
+                owner: document.getElementById('gh-owner').value,
+                repo: document.getElementById('gh-repo').value,
+                path: document.getElementById('gh-path').value
+            };
+            
+            // Only send token if user entered a new one
+            if (!p.token) delete p.token;
+
+            await submitFormToGAS('form-github-sync', { action: 'save_github_config', payload: p }, 'Konfigurasi GitHub Tersimpan!');
+        };
 
         window.onload = () => { lucide.createIcons(); if(sessionStorage.getItem('adm_v10')) init(); };
     </script>
