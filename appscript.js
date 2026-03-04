@@ -1439,7 +1439,14 @@ function createDuitkuPayment(d, cfg) {
     };
 
     const res = UrlFetchApp.fetch(url, options);
-    const resData = JSON.parse(res.getContentText());
+    const content = res.getContentText();
+    let resData;
+    
+    try {
+      resData = JSON.parse(content);
+    } catch (err) {
+      return { status: "error", message: "Invalid response from Duitku: " + content.substring(0, 50) };
+    }
 
     if (resData.paymentUrl) {
       return { status: "success", paymentUrl: resData.paymentUrl, raw: resData };

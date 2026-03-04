@@ -593,6 +593,46 @@
             lucide.createIcons();
         }
 
+        // --- UTILITIES ---
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000, timeout = 10000) {
+            for (let i = 0; i <= retries; i++) {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                options.signal = controller.signal;
+
+                try {
+                    const response = await fetch(url, options);
+                    clearTimeout(id);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP_ERROR_${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    clearTimeout(id);
+                    const isLastAttempt = i === retries;
+                    
+                    let errorType = 'UNKNOWN';
+                    if (error.name === 'AbortError') errorType = 'TIMEOUT';
+                    else if (error.message.startsWith('HTTP_ERROR')) errorType = 'HTTP';
+                    else if (error.name === 'TypeError') errorType = 'NETWORK'; // CORS or Offline
+
+                    console.warn(`Attempt ${i + 1} failed: ${errorType} - ${error.message}`);
+
+                    if (isLastAttempt) {
+                        error.type = errorType; // Attach type for caller
+                        throw error;
+                    }
+
+                    // Exponential backoff with jitter
+                    const waitTime = backoff * Math.pow(2, i) + (Math.random() * 200);
+                    await sleep(waitTime);
+                }
+            }
+        }
+
         async function loadProduct() {
             if(!productId) { window.location.href = 'index.html'; return; }
             
@@ -639,7 +679,7 @@
                 const uData = JSON.parse(localStorage.getItem('melimpah_user') || '{}');
                 const sessEmail = uData.email || (new URLSearchParams(window.location.search)).get('email') || '';
 
-                const res = await fetch(targetUrl, { 
+                const res = await fetchWithRetry(targetUrl, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'get_product', id: productId, aff_id: affId, email: sessEmail }) 
@@ -658,7 +698,15 @@
                     if(!prefilled) { showToast(r.message, 'error'); setTimeout(() => window.location.href = 'index.html', 1500); }
                 }
             } catch (e) { 
-                showToast('Gagal memuat sistem pembayaran. Cek internet Anda.', 'error');
+                console.error("Load Product Error:", e);
+                let msg = 'Gagal memuat sistem pembayaran.';
+                
+                if (e.type === 'TIMEOUT') msg = 'Koneksi lambat (Timeout). Coba refresh halaman.';
+                else if (e.type === 'NETWORK') msg = 'Gagal terhubung ke server. Cek internet Anda.';
+                else if (e.type === 'HTTP') msg = 'Terjadi kesalahan server. Coba lagi nanti.';
+                else if (e.name === 'SyntaxError') msg = 'Data dari server tidak valid.';
+
+                showToast(msg, 'error');
             }
         }
 
@@ -718,11 +766,12 @@
                 const targetUrl = window.SCRIPT_URL || SCRIPT_URL;
                 
                 // 1. CREATE ORDER FIRST
-                const res = await fetch(targetUrl, { 
+                const res = await fetchWithRetry(targetUrl, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(pData) 
-                });
+                }, 3, 1000, 15000); // 15s timeout for order creation
+                
                 const r = await res.json();
 
                 if(r.status === 'success') {
@@ -740,20 +789,26 @@
                             name: pData.nama
                         };
 
-                        const resD = await fetch(targetUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify(duitkuPayload)
-                        });
-                        const rD = await resD.json();
+                        try {
+                            const resD = await fetchWithRetry(targetUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify(duitkuPayload)
+                            }, 2, 1000, 15000);
+                            const rD = await resD.json();
 
-                        if (rD.status === 'success' && rD.paymentUrl) {
-                            window.location.href = rD.paymentUrl;
-                            return; // Stop execution, redirecting
-                        } else {
-                            showToast('Gagal membuat link pembayaran Duitku: ' + (rD.message || 'Error'), 'error');
-                            // Fallback to manual or stay on page?
-                            // Let's stay on page but show success state as manual fallback
+                            if (rD.status === 'success' && rD.paymentUrl) {
+                                window.location.href = rD.paymentUrl;
+                                return; // Stop execution, redirecting
+                            } else {
+                                showToast('Gagal membuat link pembayaran Duitku: ' + (rD.message || 'Error'), 'error');
+                                // Fallback to manual or stay on page?
+                                // Let's stay on page but show success state as manual fallback
+                            }
+                        } catch (dErr) {
+                            console.error("Duitku Error:", dErr);
+                            showToast("Gagal menghubungi Duitku. Silakan transfer manual.", "warning");
+                            // Proceed to manual flow below
                         }
                     }
 
@@ -831,7 +886,15 @@
                     lucide.createIcons();
                 }
             } catch (err) { 
-                showToast('Gagal memproses pesanan. Cek koneksi Anda.', 'error'); 
+                console.error("Order Submit Error:", err);
+                let msg = 'Gagal memproses pesanan.';
+                
+                if (err.type === 'TIMEOUT') msg = 'Koneksi ke server timeout. Silakan coba lagi.';
+                else if (err.type === 'NETWORK') msg = 'Gagal terhubung. Periksa koneksi internet Anda.';
+                else if (err.type === 'HTTP') msg = 'Terjadi kesalahan server saat memproses pesanan.';
+                else if (err.name === 'SyntaxError') msg = 'Respon server tidak valid.';
+
+                showToast(msg, 'error'); 
                 btn.innerHTML = originalHTML;
                 btn.disabled = false; 
                 lucide.createIcons();
