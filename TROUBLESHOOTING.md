@@ -4,6 +4,7 @@
 Dokumen ini berisi panduan penanganan masalah teknis untuk dua error kritis yang sering dilaporkan:
 1.  Error Halaman Checkout ("Gagal memuat sistem pembayaran")
 2.  Error Halaman Utama ("Katalog sedang diperbarui" / "Waktu Habis")
+3.  Error Tampilan Harga ("Rp. Nan")
 
 ---
 
@@ -63,6 +64,25 @@ Dokumen ini berisi panduan penanganan masalah teknis untuk dua error kritis yang
 2.  Pastikan semua status **PASS**.
     *   Jika Test 1 (Real API) GAGAL, berarti backend down atau URL salah.
 3.  Test manual: Matikan internet -> Refresh halaman -> Pastikan muncul pesan "Koneksi internet bermasalah".
+
+---
+
+## 3. Error: "Rp. Nan" (Invalid Price)
+
+### Gejala
+*   Harga produk ditampilkan sebagai "Rp. Nan" di halaman detail atau checkout.
+*   Total harga checkout tidak dapat dihitung.
+
+### Root Cause Analysis (Fixed)
+*   **Property Name Mismatch:** Backend mengembalikan properti `price`, sedangkan frontend mengharapkan `harga`. (Fixed: Backend sekarang konsisten menggunakan `harga`).
+*   **Data Type Issue:** Nilai harga dari spreadsheet terkadang string kosong atau format tidak valid. (Fixed: Implementasi sanitasi `toNumberSafe_` di backend).
+*   **Race Condition:** Kalkulasi harga di frontend dilakukan sebelum data produk sepenuhnya dimuat. (Fixed: Added default value `|| 0`).
+
+### Mekanisme Perbaikan (Implemented)
+1.  **Standardisasi Properti:** Semua endpoint API (`getProducts`, `getProductDetail`) sekarang mengembalikan `harga`.
+2.  **Server-Side Sanitization:** Fungsi `toNumberSafe_` memastikan output selalu angka valid (default 0 jika error).
+3.  **Client-Side Fallback:** Logika rendering frontend menggunakan `Number(p.harga || 0)` untuk mencegah `NaN`.
+4.  **Test Coverage:** `test-catalog.html` sekarang memvalidasi tipe data harga dan konsistensi nama properti.
 
 ---
 *Dibuat otomatis oleh AI Assistant - 2026*

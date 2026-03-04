@@ -695,7 +695,7 @@ function getProductDetail(d, cfg) {
                 title: r[i][1],
                 desc: r[i][2],
                 url: r[i][3],
-                price: r[i][4],
+                harga: toNumberSafe_(r[i][4]),
                 image: r[i][7] || "", // Image URL
                 pixel_id: (userPixelData && userPixelData.id) ? userPixelData.id : (r[i][8] || ""),
                 pixel_token: (userPixelData && userPixelData.token) ? userPixelData.token : (r[i][9] || ""),
@@ -738,7 +738,7 @@ function getProducts(d, cfg) {
          list.push({
              id: r[i][0],
              title: r[i][1],
-             price: r[i][4],
+             harga: toNumberSafe_(r[i][4]), // Fix: Rename price -> harga & sanitize
              image: r[i][7] || "",
              is_bump: String(r[i][12] || "").toLowerCase() === "true"
          });

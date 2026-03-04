@@ -571,7 +571,7 @@
             trackEvent('PageView');
             
             // LOGIC GRATIS / BERBAYAR
-            const isFree = (Number(p.harga) === 0);
+            const isFree = (Number(p.harga || 0) === 0);
             if (isFree) {
                 document.getElementById('payment-method-section').classList.add('hidden');
                 document.getElementById('btn-submit').innerHTML = 'Dapatkan Akses Gratis <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>';
