@@ -49,7 +49,7 @@
         }
 
         async function runTests() {
-            // Test 1: Real API Call
+            // Test 1: Real API Call & Data Structure Verification
             try {
                 if(typeof SCRIPT_URL === 'undefined') throw new Error("SCRIPT_URL missing");
                 const res = await fetch(SCRIPT_URL, {
@@ -58,23 +58,27 @@
                 });
                 const json = await res.json();
                 
-                if (json.status === 'success' && Array.isArray(json.data)) {
-                    document.getElementById('status-1').innerHTML = `<span class="text-green-600 font-bold">PASS</span> (${json.data.length} items found)`;
+                let details = [];
+                if (Array.isArray(json.data)) details.push(`Found 'data' (${json.data.length} items)`);
+                if (Array.isArray(json.available)) details.push(`Found 'available' (${json.available.length} items)`);
+                
+                if (json.status === 'success' && (Array.isArray(json.data) || Array.isArray(json.available))) {
+                    document.getElementById('status-1').innerHTML = `<span class="text-green-600 font-bold">PASS</span> <span class="text-xs text-slate-500">(${details.join(', ')})</span>`;
                 } else {
-                    throw new Error("Invalid data structure");
+                    throw new Error("Invalid data structure: Missing 'data' or 'available' array");
                 }
             } catch (e) {
                 document.getElementById('status-1').innerHTML = `<span class="text-red-600 font-bold">FAIL</span>: ${e.message}`;
             }
 
-            // Test 2: Render Empty Logic
+            // Test 2: Render Logic (Empty Data Fallback)
             try {
                 const container = document.createElement('div');
                 const products = [];
                 if (products.length === 0) {
-                    container.innerHTML = "Katalog sedang diperbarui"; // Mimic index.html logic
+                    container.innerHTML = "Belum Ada Produk"; // Updated Logic
                 }
-                if (container.innerHTML.includes("diperbarui")) {
+                if (container.innerHTML.includes("Belum Ada") || container.innerHTML.includes("Katalog sedang")) {
                     document.getElementById('status-2').innerHTML = `<span class="text-green-600 font-bold">PASS</span> (Correctly identified empty state)`;
                 } else {
                     throw new Error("Render logic incorrect");

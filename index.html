@@ -315,6 +315,25 @@
             }
 
             // Pengecekan data terbaru dengan Retry & Timeout
+            const safetyTimer = setTimeout(() => {
+                 if (!hasRenderedCache && document.getElementById('katalog-loader')) {
+                     console.error("Safety Timeout: Force stop loading");
+                     const container = document.getElementById('public-products');
+                     if(container) {
+                        container.innerHTML = `
+                        <div class="col-span-full text-center py-12 border-2 border-dashed border-red-200 rounded-3xl bg-red-50">
+                            <i data-lucide="clock" class="w-12 h-12 text-red-300 mx-auto mb-4"></i>
+                            <h3 class="text-lg font-bold text-red-700">Waktu Habis</h3>
+                            <p class="text-red-500 mt-2 text-sm">Gagal memuat katalog tepat waktu.</p>
+                            <button onclick="loadPublicCatalog(true)" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-200 transition-all">
+                                Coba Lagi
+                            </button>
+                        </div>`;
+                        lucide.createIcons();
+                     }
+                 }
+            }, 45000); // 45 detik safety valve
+
             try {
                 if(typeof SCRIPT_URL === 'undefined') throw new Error("Konfigurasi API (SCRIPT_URL) hilang.");
                 
@@ -323,11 +342,16 @@
                     body: JSON.stringify({ action: 'get_products', email: '' }) 
                 });
                 
+                clearTimeout(safetyTimer); // Clear safety timer if fetch completes
+                
                 const r = await res.json();
+                console.log("Catalog API Response:", r); // Debug log
                 
                 if (r.status === 'success') {
-                    // Pastikan r.available adalah array
-                    const data = Array.isArray(r.available) ? r.available : [];
+                    // Fix: Gunakan r.data sesuai response appscript.js, fallback ke available jika perlu
+                    const data = Array.isArray(r.data) ? r.data : (Array.isArray(r.available) ? r.available : []);
+                    console.log("Parsed Products:", data.length); // Debug log
+
                     const freshData = JSON.stringify(data);
                     
                     // Update cache & UI hanya jika data berubah
@@ -341,6 +365,7 @@
                     throw new Error(r.message || "Gagal memuat data dari server");
                 }
             } catch (err) { 
+                clearTimeout(safetyTimer);
                 console.error('Sync failed', err);
                 
                 // Jika fetch gagal total dan belum ada cache yang tampil

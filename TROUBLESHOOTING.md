@@ -3,65 +3,65 @@
 
 Dokumen ini berisi panduan penanganan masalah teknis untuk dua error kritis yang sering dilaporkan:
 1.  Error Halaman Checkout ("Gagal memuat sistem pembayaran")
-2.  Error Halaman Utama ("Katalog sedang diperbarui")
+2.  Error Halaman Utama ("Katalog sedang diperbarui" / "Waktu Habis")
 
 ---
 
-## 1. Error Halaman Checkout
-**Gejala:** Muncul pesan error saat memuat halaman checkout atau saat submit form.
+## 1. Error: "Gagal memuat sistem pembayaran" (Checkout)
 
-### A. Pesan Error & Solusi
-| Pesan Error | Kemungkinan Penyebab | Solusi Teknis |
+### Gejala
+*   Muncul pesan "Gagal memuat sistem pembayaran, cek koneksi internet anda" saat halaman checkout dimuat.
+*   Pilihan metode pembayaran tidak muncul.
+
+### Kemungkinan Penyebab & Solusi
+| Pesan Error | Kemungkinan Penyebab | Solusi |
 | :--- | :--- | :--- |
-| **"Gagal memuat sistem pembayaran"** | API Gateway Duitku down, konfigurasi salah, atau script error. | 1. Cek `Settings` di Spreadsheet, pastikan `duitku_merchant_code` & `duitku_api_key` benar.<br>2. Cek Console Browser (F12) untuk detail error.<br>3. Redeploy App Script jika ada perubahan backend. |
-| **"Koneksi lambat (Timeout)"** | Koneksi user lambat atau Server Google busy. | 1. Refresh halaman.<br>2. Sistem sudah memiliki *Retry Mechanism* otomatis (3x percobaan). |
-| **"Koneksi internet bermasalah"** | User offline atau blokir CORS/Firewall. | 1. Cek koneksi internet.<br>2. Matikan VPN/AdBlocker sementara. |
-| **"Data dari server tidak valid"** | Respons Backend bukan JSON valid (misal HTML error page). | 1. Cek Log di Google Apps Script Dashboard.<br>2. Pastikan tidak ada syntax error di `appscript.js`. |
+| **Koneksi lambat (Timeout)** | API Gateway lambat merespon (>10s) | Otomatis di-retry 3x. Jika persisten, cek status server Google Apps Script. |
+| **Koneksi internet bermasalah** | User offline atau DNS block | Minta user cek koneksi. Coba akses via data seluler. |
+| **HTTP_ERROR_500/404** | Backend script error atau URL salah | Cek log backend di Apps Script Dashboard. Pastikan `SCRIPT_URL` benar. |
+| **Error: Konfigurasi API hilang** | `config.js` tidak termuat | Cek console browser. Pastikan file `config.js` ada dan tidak di-block adblocker. |
 
-### B. Arsitektur Perbaikan
-- **Retry Mechanism:** `fetchWithRetry` (3 retries, exponential backoff).
-- **Timeout Handling:** Request dibatasi 10-15 detik.
-- **Validasi Input:** JSON.parse dibungkus `try-catch` aman.
-
----
-
-## 2. Error Halaman Utama (Katalog)
-**Gejala:** Produk tidak muncul, hanya loading terus atau pesan error.
-
-### A. Pesan Error & Solusi
-| Pesan Error | Kemungkinan Penyebab | Solusi Teknis |
-| :--- | :--- | :--- |
-| **"Belum Ada Produk / Katalog sedang disiapkan"** | API Sukses, tapi data produk kosong. | 1. Buka Spreadsheet sheet `Access_Rules`.<br>2. Pastikan ada produk dengan kolom `Status` = "Active".<br>3. Pastikan kolom data tidak bergeser. |
-| **"Gagal Memuat Katalog"** | Gagal fetch ke API Backend. | 1. Cek URL `SCRIPT_URL` di `config.js`.<br>2. Pastikan deployment Web App di set ke "Anyone" (Public). |
-| **Spinner Loading Tidak Berhenti** | JavaScript error sebelum render. | 1. Cek Console Browser (F12) -> Console Tab.<br>2. Cari error berwarna merah. |
-
-### B. Arsitektur Perbaikan
-- **Stale-While-Revalidate:** Menampilkan data cache (localStorage) terlebih dahulu agar loading instan, sambil update data di background.
-- **Fallback UI:** Jika API mati & Cache kosong, tampilkan UI "Gagal Memuat" dengan tombol Retry, bukan halaman putih.
-- **Client-Side Logging:** Error fetch pertama akan dikirim ke server (Sheet `Analytics`) untuk monitoring.
+### Verifikasi Teknis
+1.  Buka **DevTools** (F12) -> **Console**.
+2.  Cari log dengan prefix `Attempt X failed`.
+3.  Jalankan `test-payment.html` untuk simulasi koneksi.
 
 ---
 
-## 3. Sistem Logging & Monitoring
-Sistem dilengkapi dengan logging sederhana untuk memantau kesehatan aplikasi.
+## 2. Error: "Katalog sedang diperbarui" / "Waktu Habis" (Index)
 
-### A. Lokasi Log
-1.  **Client-Side (Browser Console):** Tekan F12 -> Console. Error akan dikategorikan (TIMEOUT, NETWORK, HTTP).
-2.  **Server-Side (Spreadsheet):**
-    - Sheet **Analytics**: Mencatat error fetch dari frontend (`catalog_fetch_retry`).
-    - Sheet **Executions** (Google Cloud Console): Log internal Google Apps Script.
+### Gejala
+*   Produk tidak muncul, hanya loading spinner terus menerus.
+*   Muncul pesan "Katalog sedang diperbarui" atau "Waktu Habis".
 
-### B. Cara Monitoring
-- **Alert:** Admin dapat memantau sheet `Analytics`. Jika banyak entry `error` dengan label `catalog_fetch_retry`, berarti sedang ada gangguan masif.
-- **Action:** Jika error meningkat, cek Quota Google Apps Script atau status API Duitku.
+### Root Cause Analysis (Fixed)
+*   **Data Property Mismatch:** Frontend sebelumnya mencari properti `available`, padahal backend mengembalikan `data`. (Fixed: Fallback mechanism added).
+*   **Empty Response:** Backend mengembalikan array kosong `[]` jika tidak ada produk aktif.
+*   **Stuck Loading:** Fetch request menggantung tanpa timeout yang jelas. (Fixed: Added Safety Timeout 45s).
 
----
+### Mekanisme Perbaikan (Implemented)
+1.  **Stale-While-Revalidate:** Menampilkan data dari cache (localStorage) segera, sambil fetch data baru di background.
+2.  **Robust Error Handling:** Menggunakan `r.data` (primary) dan `r.available` (fallback).
+3.  **Safety Timeout:** Jika loading > 45 detik, otomatis stop dan tampilkan tombol "Coba Lagi".
+4.  **Logging:** Log respon API lengkap ke console untuk debugging (`Catalog API Response: ...`).
 
-## 4. Prosedur Verifikasi (Testing)
-Gunakan file `test-catalog.html` dan `test-payment.html` untuk simulasi.
+### Cara Debugging (Langkah Demi Langkah)
+1.  **Cek Console Log:**
+    *   Buka DevTools (F12) -> Console.
+    *   Lihat log: `Catalog API Response: { ... }`.
+    *   Pastikan `status: "success"` dan `data` berisi array produk.
+2.  **Cek Network Tab:**
+    *   Filter: `Fetch/XHR`.
+    *   Cari request ke script google (`exec`).
+    *   Pastikan status 200 OK.
+3.  **Test Cache:**
+    *   Jalankan `localStorage.removeItem('melimpah_public_catalog')` di console.
+    *   Refresh halaman.
 
+### Verifikasi dengan Test File
 1.  Buka `test-catalog.html` di browser.
 2.  Pastikan semua status **PASS**.
+    *   Jika Test 1 (Real API) GAGAL, berarti backend down atau URL salah.
 3.  Test manual: Matikan internet -> Refresh halaman -> Pastikan muncul pesan "Koneksi internet bermasalah".
 
 ---
