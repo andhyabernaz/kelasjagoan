@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Catalog Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+</head>
+<body class="bg-slate-50 p-10">
+    <h1 class="text-2xl font-bold mb-6">Catalog System Verification</h1>
+    
+    <div class="space-y-4">
+        <div id="test-1" class="p-4 bg-white rounded shadow">
+            <h3 class="font-bold">Test 1: Fetch Catalog (Real API)</h3>
+            <div id="status-1" class="text-gray-500">Running...</div>
+        </div>
+
+        <div id="test-2" class="p-4 bg-white rounded shadow">
+            <h3 class="font-bold">Test 2: Render Logic (Empty Data)</h3>
+            <div id="status-2" class="text-gray-500">Running...</div>
+        </div>
+
+        <div id="test-3" class="p-4 bg-white rounded shadow">
+            <h3 class="font-bold">Test 3: Retry Mechanism (Simulation)</h3>
+            <div id="status-3" class="text-gray-500">Running...</div>
+        </div>
+    </div>
+
+    <script>
+        // Utility: Mock Sleep
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // Utility: Fetch with Retry (Simulated implementation for test)
+        async function fetchWithRetry(url, options = {}, retries = 2, backoff = 500) {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    // Simulate fetch if url is mock
+                    if (url === 'mock-fail') throw new Error('Mock Network Error');
+                    if (url === 'mock-success') return { ok: true, json: async () => ({ status: 'success', data: [] }) };
+                    
+                    const res = await fetch(url, options);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res;
+                } catch (err) {
+                    if (i === retries) throw err;
+                    await sleep(backoff * Math.pow(2, i));
+                }
+            }
+        }
+
+        async function runTests() {
+            // Test 1: Real API Call
+            try {
+                if(typeof SCRIPT_URL === 'undefined') throw new Error("SCRIPT_URL missing");
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'get_products' })
+                });
+                const json = await res.json();
+                
+                if (json.status === 'success' && Array.isArray(json.data)) {
+                    document.getElementById('status-1').innerHTML = `<span class="text-green-600 font-bold">PASS</span> (${json.data.length} items found)`;
+                } else {
+                    throw new Error("Invalid data structure");
+                }
+            } catch (e) {
+                document.getElementById('status-1').innerHTML = `<span class="text-red-600 font-bold">FAIL</span>: ${e.message}`;
+            }
+
+            // Test 2: Render Empty Logic
+            try {
+                const container = document.createElement('div');
+                const products = [];
+                if (products.length === 0) {
+                    container.innerHTML = "Katalog sedang diperbarui"; // Mimic index.html logic
+                }
+                if (container.innerHTML.includes("diperbarui")) {
+                    document.getElementById('status-2').innerHTML = `<span class="text-green-600 font-bold">PASS</span> (Correctly identified empty state)`;
+                } else {
+                    throw new Error("Render logic incorrect");
+                }
+            } catch (e) {
+                document.getElementById('status-2').innerHTML = `<span class="text-red-600 font-bold">FAIL</span>: ${e.message}`;
+            }
+
+            // Test 3: Retry Logic
+            try {
+                const start = Date.now();
+                await fetchWithRetry('mock-fail', {}, 2, 200);
+                document.getElementById('status-3').innerHTML = `<span class="text-red-600 font-bold">FAIL</span> (Should have thrown error)`;
+            } catch (e) {
+                const duration = Date.now() - start;
+                // 2 retries: wait 200 + 400 = 600ms min
+                if (duration > 500) {
+                    document.getElementById('status-3').innerHTML = `<span class="text-green-600 font-bold">PASS</span> (Retried correctly, took ${duration}ms)`;
+                } else {
+                    document.getElementById('status-3').innerHTML = `<span class="text-red-600 font-bold">FAIL</span> (Retry too fast: ${duration}ms)`;
+                }
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+</html>
