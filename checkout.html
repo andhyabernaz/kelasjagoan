@@ -236,25 +236,6 @@
                                     </div>
                                 </label>
 
-                                <!-- DUITKU (AUTO) -->
-                                <label class="group relative flex items-start p-4 border-2 border-slate-100 rounded-xl cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-200 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50 has-[:checked]:shadow-indigo-500/10" id="opt-duitku">
-                                    <input type="radio" name="payment_method" value="duitku" class="peer sr-only" onchange="selectPayment('duitku')">
-                                    <div class="flex-shrink-0 mt-0.5 mr-3">
-                                        <div class="w-5 h-5 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center peer-checked:border-indigo-600 peer-checked:bg-indigo-600 transition-colors group-hover:border-indigo-400">
-                                            <div class="w-2.5 h-2.5 rounded-full bg-transparent peer-checked:bg-white transition-colors"></div>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex justify-between items-center mb-1">
-                                            <span class="block text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors peer-checked:text-indigo-700">QRIS / Virtual Account (Otomatis)</span>
-                                            <div class="flex gap-1">
-                                                <i data-lucide="qr-code" class="w-4 h-4 text-slate-400"></i>
-                                                <i data-lucide="zap" class="w-4 h-4 text-amber-500 fill-amber-500"></i>
-                                            </div>
-                                        </div>
-                                        <span class="block text-[11px] text-slate-500 font-medium leading-relaxed">Verifikasi Instan 24 Jam. Mendukung QRIS, ShopeePay, OVO, Dana, LinkAja & Semua Bank.</span>
-                                    </div>
-                                </label>
                             </div>
                         </div>
 
@@ -490,17 +471,11 @@
 
             // PAYMENT METHOD LOGIC
             const paySection = document.getElementById('payment-method-section');
-            if(sysPayment.duitku_active) {
-                paySection.classList.remove('hidden');
-                // Ensure correct initial state
-                if(selectedPayment === 'bank') {
-                    document.querySelector('input[value="bank"]').checked = true;
-                }
-            } else {
-                paySection.classList.add('hidden');
-                selectedPayment = 'bank';
-                document.querySelector('input[value="bank"]').checked = true;
-            }
+            paySection.classList.add('hidden');
+            selectedPayment = 'bank';
+            const bankInput = document.querySelector('input[value="bank"]');
+            if(bankInput) bankInput.checked = true;
+
 
             if(r.aff_name && r.aff_name !== "") {
                 document.getElementById('affiliate-id-display').innerText = r.aff_name;
@@ -775,42 +750,6 @@
                 const r = await res.json();
 
                 if(r.status === 'success') {
-                    // IF DUITKU SELECTED
-                    if (selectedPayment === 'duitku') {
-                        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> MENGHUBUNGKAN DUITKU...';
-                        
-                        const duitkuPayload = {
-                            action: 'create_duitku_payment',
-                            amount: r.tagihan, // Use unique amount if needed, or original price
-                            invoice: r.invoice,
-                            product_name: pData.nama_produk,
-                            email: pData.email,
-                            phone: pData.whatsapp,
-                            name: pData.nama
-                        };
-
-                        try {
-                            const resD = await fetchWithRetry(targetUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                body: JSON.stringify(duitkuPayload)
-                            }, 2, 1000, 15000);
-                            const rD = await resD.json();
-
-                            if (rD.status === 'success' && rD.paymentUrl) {
-                                window.location.href = rD.paymentUrl;
-                                return; // Stop execution, redirecting
-                            } else {
-                                showToast('Gagal membuat link pembayaran Duitku: ' + (rD.message || 'Error'), 'error');
-                                // Fallback to manual or stay on page?
-                                // Let's stay on page but show success state as manual fallback
-                            }
-                        } catch (dErr) {
-                            console.error("Duitku Error:", dErr);
-                            showToast("Gagal menghubungi Duitku. Silakan transfer manual.", "warning");
-                            // Proceed to manual flow below
-                        }
-                    }
 
                     // MANUAL TRANSFER FLOW (OR FALLBACK)
                     window.scrollTo({top: 0, behavior: 'smooth'}); 

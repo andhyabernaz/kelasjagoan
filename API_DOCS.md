@@ -71,29 +71,7 @@ Creates a new order, optionally including a Bump Order.
 }
 ```
 
-### 3. Create Duitku Payment
-Initiates a payment gateway transaction.
 
-**Request:**
-```json
-{
-  "action": "create_duitku_payment",
-  "amount": 150123,
-  "invoice": "INV-123456",
-  "product_name": "Product Name + Bump",
-  "email": "...",
-  "phone": "...",
-  "name": "..."
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "paymentUrl": "https://duitku.com/..."
-}
-```
 
 ### 4. Log Analytics Event
 Records tracking events for A/B testing and funnel analysis.
@@ -121,4 +99,4 @@ Records tracking events for A/B testing and funnel analysis.
 ## Inventory & Integration
 - **Products**: Managed in `Access_Rules` sheet.
 - **Orders**: Stored in `Orders` sheet.
-- **Webhooks**: Duitku notifications are handled via `doPost` with `action=duitku_callback` (implicit).
+
