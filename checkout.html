@@ -363,6 +363,8 @@
         }
 
         const PRODUCT_CACHE_KEY = 'melimpah_product_' + productId;
+        const PRODUCT_CACHE_TS_KEY = PRODUCT_CACHE_KEY + '_ts';
+        const PRODUCT_CACHE_TTL_MS = 5 * 60 * 1000;
 
         // --- A/B TESTING & ANALYTICS ---
         const variant = Math.random() < 0.5 ? 'A' : 'B';
@@ -490,9 +492,10 @@
             document.getElementById('prod-price').value = p.harga;
             
             // --- BUMP & SOCIAL PROOF ---
-            if (r.bump_product && String(r.bump_product.id) !== String(p.id)) {
-                console.log("Bump Product Found:", r.bump_product);
-                bumpData = r.bump_product;
+            const bumpFromApi = r.bump_product || (p ? p.bump_product : null);
+            if (bumpFromApi && String(bumpFromApi.id) !== String(p.id)) {
+                console.log("Bump Product Found:", bumpFromApi);
+                bumpData = bumpFromApi;
                 const bWidget = document.getElementById('bump-widget');
                 if(bWidget) {
                     bWidget.classList.remove('hidden');
@@ -617,10 +620,12 @@
             
             const affId = localStorage.getItem('melimpah_affiliate');
             const cachedData = localStorage.getItem(PRODUCT_CACHE_KEY);
+            const cachedTs = Number(localStorage.getItem(PRODUCT_CACHE_TS_KEY) || "0");
+            const cacheFresh = !!(cachedData && cachedTs && (Date.now() - cachedTs < PRODUCT_CACHE_TTL_MS));
             let prefilled = false;
 
             // 1. CEK CACHE CHECKOUT (Trik Optimistic UI langsung panggil form)
-            if (cachedData && !isDebug) {
+            if (cacheFresh && !isDebug) {
                 try {
                     renderCheckoutUI(JSON.parse(cachedData));
                     prefilled = true;
@@ -671,8 +676,10 @@
                     const freshData = JSON.stringify(r);
                     if(cachedData !== freshData) {
                         localStorage.setItem(PRODUCT_CACHE_KEY, freshData);
+                        localStorage.setItem(PRODUCT_CACHE_TS_KEY, String(Date.now()));
                         renderCheckoutUI(r); 
                     } else if (!cachedData) {
+                        localStorage.setItem(PRODUCT_CACHE_TS_KEY, String(Date.now()));
                         renderCheckoutUI(r); 
                     }
                 } else { 

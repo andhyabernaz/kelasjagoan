@@ -1348,6 +1348,26 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function logout() { sessionStorage.clear(); localStorage.removeItem(CACHE_KEY_ADMIN); location.reload(); }
 
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        async function fetchWithRetry(url, options = {}, retries = 3, backoff = 800, timeout = 15000) {
+            for (let i = 0; i <= retries; i++) {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                options.signal = controller.signal;
+                try {
+                    const response = await fetch(url, options);
+                    clearTimeout(id);
+                    if (!response.ok) throw new Error('HTTP_' + response.status);
+                    return response;
+                } catch (error) {
+                    clearTimeout(id);
+                    if (i === retries) throw error;
+                    const wait = backoff * Math.pow(2, i) + (Math.random() * 200);
+                    await sleep(wait);
+                }
+            }
+        }
+
         async function submitFormToGAS(formId, payload, successMsg, modalIdToClose = null) {
             const form = document.getElementById(formId);
             const btn = form.querySelector('button[type="submit"]');
@@ -1359,11 +1379,11 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
             lucide.createIcons();
 
             try {
-                const res = await fetch(SCRIPT_URL, {
+                const res = await fetchWithRetry(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
-                });
+                }, 3, 800, 15000);
                 
                 const text = await res.text();
                 let data;
@@ -1381,7 +1401,10 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                     showToast(data.message || 'Gagal diproses oleh server', 'error');
                 }
             } catch(err) {
-                showToast('Koneksi terputus: ' + err.message, 'error');
+                let msg = 'Koneksi terputus: ' + err.message;
+                if (err && err.name === 'AbortError') msg = 'Timeout. Koneksi lambat, coba simpan ulang.';
+                if (String(err && err.message || '').startsWith('HTTP_')) msg = 'Server error (' + String(err.message).replace('HTTP_', '') + '). Coba lagi.';
+                showToast(msg, 'error');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;

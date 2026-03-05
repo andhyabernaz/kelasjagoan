@@ -709,6 +709,14 @@ function getProductDetail(d, cfg) {
         const rowIsBump = r[i][schema.is_bump - 1];
         const isBump = String(rowIsBump || "").toLowerCase() === "true" || rowIsBump === true || String(rowIsBump || "").toUpperCase() === "TRUE";
 
+        const payment = {
+          bank_name: getCfgFrom_(cfg, "bank_name") || "-",
+          bank_norek: getCfgFrom_(cfg, "bank_norek") || "-",
+          bank_owner: getCfgFrom_(cfg, "bank_owner") || "-",
+          wa_admin: getCfgFrom_(cfg, "wa_admin") || "",
+          pixel_id: getCfgFrom_(cfg, "pixel_id") || ""
+        };
+
         return {
           status: "success",
           data: {
@@ -724,7 +732,9 @@ function getProductDetail(d, cfg) {
             is_bump: isBump,
             bump_product_id: bumpId,
             bump_product: bumpData
-          }
+          },
+          bump_product: bumpData,
+          payment: payment
         };
       }
     }
@@ -1238,18 +1248,19 @@ function saveProduct(d) {
       bump_product_id: bumpIdRaw
     };
     const isEdit = String(d.is_edit) === "true";
+    const schemaCols = Object.keys(schema || {}).map((k) => Number(schema[k] || 0)).filter((n) => isFinite(n) && n > 0);
+    const writeColCount = Math.max(1, s.getLastColumn() || 1, schemaCols.length ? Math.max.apply(null, schemaCols) : 1);
 
     if (isEdit) {
       const r = s.getDataRange().getValues();
       for (let i = 1; i < r.length; i++) {
         if (String(r[i][schema.id - 1]).trim() === id) {
-          const lastCol = Math.max(1, s.getLastColumn() || 1);
-          const rowNow = s.getRange(i + 1, 1, 1, lastCol).getValues()[0];
+          const rowNow = s.getRange(i + 1, 1, 1, writeColCount).getValues()[0];
           Object.keys(fieldsToWrite).forEach((k) => {
             const col = schema[k];
             if (col) rowNow[col - 1] = fieldsToWrite[k];
           });
-          s.getRange(i + 1, 1, 1, lastCol).setValues([rowNow]);
+          s.getRange(i + 1, 1, 1, writeColCount).setValues([rowNow]);
           try {
             Logger.log(JSON.stringify({
               action: "save_product",
@@ -1261,6 +1272,7 @@ function saveProduct(d) {
               is_bump: isBump
             }));
           } catch (e) {}
+          try { CacheService.getScriptCache().remove("products_public_all_v2"); } catch (e) {}
           if (d && d.debug_save === true) {
             return { status: "success", debug: { mode: "edit", row: i + 1, bump_col: schema.bump_product_id, bump_product_id: bumpIdRaw } };
           }
@@ -1269,8 +1281,7 @@ function saveProduct(d) {
       }
       return { status: "error", message: "ID Produk tidak ditemukan untuk diedit" };
     } else {
-      const lastCol = Math.max(1, s.getLastColumn() || 1);
-      const newRow = new Array(lastCol).fill("");
+      const newRow = new Array(writeColCount).fill("");
       Object.keys(fieldsToWrite).forEach((k) => {
         const col = schema[k];
         if (col) newRow[col - 1] = fieldsToWrite[k];
@@ -1286,6 +1297,7 @@ function saveProduct(d) {
           is_bump: isBump
         }));
       } catch (e) {}
+      try { CacheService.getScriptCache().remove("products_public_all_v2"); } catch (e) {}
       if (d && d.debug_save === true) {
         return { status: "success", debug: { mode: "create", row: s.getLastRow(), bump_col: schema.bump_product_id, bump_product_id: bumpIdRaw } };
       }
