@@ -85,4 +85,31 @@ Dokumen ini berisi panduan penanganan masalah teknis untuk dua error kritis yang
 4.  **Test Coverage:** `test-catalog.html` sekarang memvalidasi tipe data harga dan konsistensi nama properti.
 
 ---
+
+## 4. Konfigurasi: SPREADSHEET_ID (Wajib untuk Backend)
+
+### Tujuan
+Backend sekarang selalu memakai `SpreadsheetApp.openById()` agar semua operasi baca/tulis mengarah ke spreadsheet yang sama walau Web App dijalankan dari konteks berbeda (standalone/container-bound/trigger).
+
+### Cara Set SPREADSHEET_ID (Script Properties)
+1. Buka project Google Apps Script yang dipakai backend.
+2. Masuk ke **Project Settings**.
+3. Di bagian **Script Properties**, tambahkan:
+   - Key: `SPREADSHEET_ID`
+   - Value: ID spreadsheet target (ambil dari URL: `https://docs.google.com/spreadsheets/d/<ID>/edit`)
+4. Deploy ulang Web App jika diperlukan.
+
+### Cara Cek Status via API
+Kirim request ke Web App:
+```json
+{ "action": "get_spreadsheet_id_status" }
+```
+
+### Cara Set via API (Opsional)
+```json
+{ "action": "set_spreadsheet_id", "spreadsheet_id": "<ID_SPREADSHEET>" }
+```
+
+Jika `SPREADSHEET_ID` belum diset atau tidak dapat diakses, backend akan mengembalikan error yang eksplisit.
+
 *Dibuat otomatis oleh AI Assistant - 2026*

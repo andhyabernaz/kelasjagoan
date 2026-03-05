@@ -11,7 +11,48 @@
  * - New: Non-Aktifkan action (Lunas -> Pending status switch)
  */
 
-const ss = SpreadsheetApp.getActiveSpreadsheet();
+const SPREADSHEET_ID_KEY_ = "SPREADSHEET_ID";
+let __SPREADSHEET__ = null;
+
+function getSpreadsheetId_() {
+  try {
+    const sp = PropertiesService.getScriptProperties();
+    const up = PropertiesService.getUserProperties();
+    return String(sp.getProperty(SPREADSHEET_ID_KEY_) || up.getProperty(SPREADSHEET_ID_KEY_) || "").trim();
+  } catch (e) {
+    return "";
+  }
+}
+
+function getSpreadsheet_() {
+  if (__SPREADSHEET__) return __SPREADSHEET__;
+  const id = getSpreadsheetId_();
+  if (!id) {
+    throw new Error('SPREADSHEET_ID belum dikonfigurasi di PropertiesService (Script Properties atau User Properties).');
+  }
+  try {
+    __SPREADSHEET__ = SpreadsheetApp.openById(id);
+    return __SPREADSHEET__;
+  } catch (e) {
+    throw new Error("Gagal membuka spreadsheet dari SPREADSHEET_ID: " + id + " | " + e.toString());
+  }
+}
+
+const ss = {
+  getSheetByName: (name) => getSpreadsheet_().getSheetByName(name),
+  insertSheet: (name) => getSpreadsheet_().insertSheet(name),
+  getSheets: () => getSpreadsheet_().getSheets(),
+  getId: () => getSpreadsheet_().getId(),
+  getName: () => getSpreadsheet_().getName()
+};
+
+function setSpreadsheetId_(id) {
+  const sid = String(id || "").trim();
+  if (!sid) throw new Error("SPREADSHEET_ID wajib diisi");
+  PropertiesService.getScriptProperties().setProperty(SPREADSHEET_ID_KEY_, sid);
+  __SPREADSHEET__ = null;
+  return sid;
+}
 
 /* =========================
    UTIL / HARDENING HELPERS
@@ -76,8 +117,6 @@ function doPost(e) {
       return jsonRes({ status: "error", message: "No data" });
     }
 
-    const cfg = getSettingsMap_();
-
     // ====================================================================
     // 🚀 RADAR DUITKU: REMOVED
     // ====================================================================
@@ -91,6 +130,30 @@ function doPost(e) {
        // Ignore JSON parse error, maybe it was not JSON but handled above or invalid
        return jsonRes({ status: "error", message: "Invalid JSON format" });
     }
+
+    const actionEarly = String((data && data.action) || "").trim();
+    if (actionEarly === "set_spreadsheet_id") {
+      try {
+        const sid = setSpreadsheetId_(data.spreadsheet_id || data.id);
+        let name = "";
+        try { name = getSpreadsheet_().getName(); } catch (e) {}
+        return jsonRes({ status: "success", spreadsheet_id: sid, spreadsheet_name: name });
+      } catch (e) {
+        return jsonRes({ status: "error", message: e.toString() });
+      }
+    }
+    if (actionEarly === "get_spreadsheet_id_status") {
+      const sid = getSpreadsheetId_();
+      if (!sid) return jsonRes({ status: "success", configured: false });
+      try {
+        const spreadsheet = getSpreadsheet_();
+        return jsonRes({ status: "success", configured: true, spreadsheet_id: sid, spreadsheet_name: spreadsheet.getName() });
+      } catch (e) {
+        return jsonRes({ status: "success", configured: true, spreadsheet_id: sid, accessible: false, message: e.toString() });
+      }
+    }
+
+    const cfg = getSettingsMap_();
 
     // ====================================================================
     // 🚀 SYSTEM ACTIONS: SYNC URL, CONFIG, ETC
@@ -1628,7 +1691,7 @@ function saveAffiliatePixel(d) {
    PERMISSION WARMUP
 ========================= */
 function pancinganIzin() {
-  SpreadsheetApp.getActiveSpreadsheet().getName();
+  ss.getName();
   MailApp.getRemainingDailyQuota();
   UrlFetchApp.fetch("https://google.com");
   Logger.log("Pancingan sukses! Izin berhasil di-refresh.");
