@@ -1,0 +1,752 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Spotmember V2</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style type="text/css">@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:400;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin/wght/normal.woff2);unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:400;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin-ext/wght/normal.woff2);unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:400;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/cyrillic-ext/wght/normal.woff2);unicode-range:U+0460-052F,U+1C80-1C88,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:400;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/vietnamese/wght/normal.woff2);unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:600;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/vietnamese/wght/normal.woff2);unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:600;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin/wght/normal.woff2);unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:600;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin-ext/wght/normal.woff2);unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:600;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/cyrillic-ext/wght/normal.woff2);unicode-range:U+0460-052F,U+1C80-1C88,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:700;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin-ext/wght/normal.woff2);unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:700;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/vietnamese/wght/normal.woff2);unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:700;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/cyrillic-ext/wght/normal.woff2);unicode-range:U+0460-052F,U+1C80-1C88,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:700;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin/wght/normal.woff2);unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:800;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/cyrillic-ext/wght/normal.woff2);unicode-range:U+0460-052F,U+1C80-1C88,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:800;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin-ext/wght/normal.woff2);unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:800;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/vietnamese/wght/normal.woff2);unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB;font-display:swap;}@font-face {font-family:Plus Jakarta Sans;font-style:normal;font-weight:800;src:url(/cf-fonts/v/plus-jakarta-sans/5.0.18/latin/wght/normal.woff2);unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;font-display:swap;}</style>
+<style>
+:root {
+  --primary: #2563eb;
+  --accent: #3b82f6;
+  --font-main: 'Plus Jakarta Sans', sans-serif;
+}
+/* RESET & FULL WIDTH MOBILE FIXES */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { 
+  margin: 0 !important; 
+  padding: 0 !important; 
+  width: 100% !important; 
+  min-width: 100% !important;
+  max-width: 100% !important; 
+  overflow-x: hidden !important; 
+  scroll-behavior: smooth; 
+  -webkit-text-size-adjust: 100%;
+}
+body { 
+  font-family: var(--font-main); 
+  color: #1e293b; 
+  line-height: 1.6; 
+  background-color: #ffffff; 
+}
+
+/* BLOGSPOT & IFRAME OVERRIDES (FORCE FULL WIDTH) */
+.main-inner, .column-center-inner, .post-body, .content-outer, .region-inner, .post-content, .post-body-container { 
+  padding: 0 !important; 
+  margin: 0 !important; 
+  max-width: 100% !important; 
+  width: 100% !important; 
+}
+
+/* LP WRAPPER FULL WIDTH */
+#lp-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
+  display: block;
+}
+
+/* MOBILE 0 MARGIN BACKGROUND FIX (But keep inner padding) */
+@media (max-width: 768px) {
+  section, .section-bg {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+  }
+  .inner-container {
+    padding-left: 1.25rem !important; /* px-5 */
+    padding-right: 1.25rem !important;
+  }
+}
+
+/* AUTO CONTRAST UTILITIES */
+.bg-dark { background-color: #0f172a; color: #f8fafc !important; }
+.bg-dark h1, .bg-dark h2, .bg-dark h3 { color: #ffffff !important; }
+.bg-dark p { color: #cbd5e1 !important; }
+
+/* BUTTONS */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white !important;
+  font-weight: 800;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  transition: 0.3s;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  text-decoration: none !important;
+  border: none;
+  cursor: pointer;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+.btn-primary:hover { transform: translateY(-3px); filter: brightness(1.1); }
+
+/* FAQ Accordion */
+.faq-item.active .faq-content { max-height: 1000px; padding-bottom: 1.5rem; }
+.faq-content { max-height: 0; overflow: hidden; transition: 0.3s ease-out; }
+.faq-item.active .faq-icon { transform: rotate(180deg); }
+
+.reveal { opacity: 0; transform: translateY(20px); transition: 0.6s ease-out; }
+.reveal.active { opacity: 1; transform: translateY(0); }
+
+/* Sticky CTA */
+#sticky-cta.hidden-cta { transform: translateY(150%); opacity: 0; }
+#sticky-cta { 
+  transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+  position: fixed; 
+  bottom: 0; 
+  left: 0; 
+  right: 0; 
+  z-index: 9999;
+  padding: 1rem;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #e2e8f0;
+}
+@media (min-width: 768px) { 
+  #sticky-cta { 
+    width: 380px; 
+    left: auto; 
+    right: 2rem; 
+    bottom: 2rem; 
+    border-radius: 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  } 
+}
+
+/* Floating WA */
+.wa-float { position: fixed; bottom: 5rem; left: 1.5rem; z-index: 9998; transition: 0.3s; }
+@media (min-width: 768px) { .wa-float { bottom: 2rem; left: 2rem; } }
+.wa-float:hover { transform: scale(1.1); }
+
+/* Image Style */
+.product-img { width: 100%; height: auto; border-radius: 1.5rem; object-fit: cover; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); }
+
+/* Custom Form Style Override */
+.custom-order-form { width: 100%; max-width: 100%; }
+.custom-order-form input, .custom-order-form select, .custom-order-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+.custom-order-form button {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="lp-wrapper"><!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotmember V2: Ubah Blogspot GRATIS Jadi Member Area Premium!</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .inner-container {
+            max-width: 1280px; /* max-w-7xl */
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1.25rem; /* px-5 */
+            padding-right: 1.25rem; /* px-5 */
+        }
+        @media (min-width: 768px) {
+            .inner-container {
+                padding-left: 2.5rem; /* md:px-10 */
+                padding-right: 2.5rem; /* md:px-10 */
+            }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .accordion-item {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .accordion-header {
+            cursor: pointer;
+            padding: 1rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 0;
+        }
+        .accordion-content.active {
+            max-height: 500px; /* Adjust as needed */
+            padding: 0.5rem 0 1rem;
+        }
+        .accordion-icon {
+            transition: transform 0.3s ease;
+        }
+        .accordion-icon.rotate {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800 bg-gray-50">
+
+    <!-- Hero Section -->
+    <section class="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16 md:py-24">
+        <div class="inner-container text-center">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+                Ubah Blogspot <span class="text-yellow-300">GRATIS</span> Jadi <br> Member Area Premium!
+            </h1>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-10 opacity-90">
+                Keluar dari jebakan kirim file manual lewat WA. Bangun sistem otomatis, profesional, anti-ribet, tanpa hosting mahal, menggunakan kekuatan Blogspot GRATIS.
+            </p>
+            <a href="#order-section" class="inline-block bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-8 rounded-full text-xl md:text-2xl transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+                SAYA MAU SISTEM OTOMATIS INI SEKARANG
+            </a>
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto text-left">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    <span class="text-lg">Akses Terkunci Otomatis</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    <span class="text-lg">Login & Register Mandiri</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    <span class="text-lg">Anti Hosting Mahal (GRATIS)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Masalah yang Dialami Section -->
+    <section class="w-full bg-white py-16 md:py-20">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-blue-700 mb-4">STOP CARA LAMA!</h2>
+            <p class="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-12">
+                Apakah Anda Masih Terjebak dalam Ribetnya Jualan Manual?
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div class="bg-red-50 p-6 rounded-lg shadow-md border-t-4 border-red-500 text-left">
+                    <h3 class="text-2xl font-bold text-red-600 mb-3">Manual Delivery</h3>
+                    <p class="text-gray-700">Kirim file satu-satu lewat WhatsApp/Email. Pembeli A: "Min, file PDF-nya mana? Belum dikirim." (01:30 AM)</p>
+                </div>
+                <div class="bg-yellow-50 p-6 rounded-lg shadow-md border-t-4 border-yellow-500 text-left">
+                    <h3 class="text-2xl font-bold text-yellow-600 mb-3">Ribet Reset Akses</h3>
+                    <p class="text-gray-700">Pembeli minta akses ulang/lupa password, dan Anda harus cari datanya. (Request ke-3 hari ini)</p>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-lg shadow-md border-t-4 border-purple-500 text-left">
+                    <h3 class="text-2xl font-bold text-purple-600 mb-3">Data Berantakan</h3>
+                    <p class="text-gray-700">Ribet atur data member dan password manual. Data member di Spreadsheet berantakan dan rawan hilang.</p>
+                </div>
+            </div>
+            <p class="text-xl md:text-2xl font-semibold text-gray-800 mt-12">
+                Capek? Itu tanda kamu butuh <span class="text-blue-600 font-extrabold">SISTEM</span>. Bukan sekadar blog biasa.
+            </p>
+        </div>
+    </section>
+
+    <!-- Solusi / Manfaat Utama Produk Section -->
+    <section class="w-full bg-blue-50 py-16 md:py-20">
+        <div class="inner-container text-center">
+            <p class="text-blue-600 text-lg font-semibold mb-3">Memperkenalkan:</p>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-blue-700 mb-6">SPOTMEMBER V2</h2>
+            <p class="text-xl md:text-2xl text-gray-700 max-w-4xl mx-auto mb-10">
+                Ubah Blogspot Gratis Anda menjadi Mesin Jualan Produk Digital Otomatis. <br>
+                Semua serba sistem, Anda tinggal fokus marketing!
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto text-left mb-12">
+                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center hover:shadow-xl transition-shadow duration-300">
+                    <div class="bg-blue-100 p-3 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm-3 9a1 1 0 112 0v2a1 1 0 11-2 0v-2zM9 7a1 1 0 011-1h1a1 1 0 110 2H9a1 1 0 01-1-1zM7 7a1 1 0 011-1h1a1 1 0 110 2H7a1 1 0 01-1-1zM11 7a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Otomasi Total 24 Jam</h3>
+                    <p class="text-gray-600">Proses pendaftaran, pembayaran, dan pemberian akses berjalan 24 jam tanpa intervensi Anda. Tinggalkan cara manual!</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center hover:shadow-xl transition-shadow duration-300">
+                    <div class="bg-green-100 p-3 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2h2a2 2 0 012 2v5a2 2 0 01-2 2H3a2 2 0 01-2-2v-5a2 2 0 012-2h2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Keamanan Konten Maksimal</h3>
+                    <p class="text-gray-600">Produk digital Anda aman. Hanya member terdaftar yang bisa melihat konten eksklusif Anda. Anti bocor!</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center hover:shadow-xl transition-shadow duration-300">
+                    <div class="bg-purple-100 p-3 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Tingkatkan Nilai Brand</h3>
+                    <p class="text-gray-600">Produk Anda terlihat lebih profesional dan premium dengan adanya Member Area khusus. Anda berhak menaikkan harga jual!</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center hover:shadow-xl transition-shadow duration-300">
+                    <div class="bg-teal-100 p-3 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-teal-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 002-2V4H4zm6 9a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4zm-6 0a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Hemat Biaya Jutaan</h3>
+                    <p class="text-gray-600">Gunakan server Google yang GRATIS, cepat, dan anti suspended. Tidak ada biaya hosting bulanan mahal!</p>
+                </div>
+            </div>
+            <a href="#order-section" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full text-xl md:text-2xl transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+                SAYA MAU SISTEM INI SEKARANG
+            </a>
+        </div>
+    </section>
+
+    <!-- Kenapa Harus Blogspot Section -->
+    <section class="w-full bg-white py-16 md:py-20">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-12">
+                <span class="text-red-500">🔥</span> KENAPA HARUS BLOGSPOT?
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+                <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-yellow-400 text-center">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">GRATIS Selamanya</h3>
+                    <p class="text-gray-600">Tanpa biaya hosting bulanan, nol pengeluaran.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-yellow-400 text-center">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Server Google</h3>
+                    <p class="text-gray-600">Kuat, cepat, anti suspended. Keandalan kelas dunia.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-yellow-400 text-center">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Ringan & Cepat</h3>
+                    <p class="text-gray-600">Loading kilat, disukai Google dan pengunjung.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-yellow-400 text-center">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Bisa Custom Domain</h3>
+                    <p class="text-gray-600">Tetap terlihat profesional menggunakan domain pribadi.</p>
+                </div>
+            </div>
+            <p class="text-xl md:text-2xl font-semibold text-gray-800 mt-12">
+                Sekarang Blogspot bukan cuma buat blog, tapi bisa jadi <span class="text-blue-600 font-extrabold">Mesin Uang Otomatis</span> Anda.
+            </p>
+        </div>
+    </section>
+
+    <!-- Untuk Siapa Sistem Ini Section -->
+    <section class="w-full bg-gray-50 py-16 md:py-20">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-blue-700 mb-12">
+                <span class="text-red-500">🎯</span> UNTUK SIAPA SISTEM INI?
+            </h2>
+            <p class="text-xl md:text-2xl text-gray-700 max-w-4xl mx-auto mb-10">
+                COCOK UNTUK SEMUA PEBISNIS DIGITAL yang ingin menjual konten eksklusif secara otomatis.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto text-left">
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm-3 9a1 1 0 112 0v2a1 1 0 11-2 0v-2zM9 7a1 1 0 011-1h1a1 1 0 110 2H9a1 1 0 01-1-1zM7 7a1 1 0 011-1h1a1 1 0 110 2H7a1 1 0 01-1-1zM11 7a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">Owner eCourse</h3>
+                        <p class="text-gray-600">Butuh member area profesional untuk materi pembelajaran.</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586l3.293-3.293A1 1 0 0115 7h-3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">Penjual Template</h3>
+                        <p class="text-gray-600">Ingin produknya aman dan hanya bisa diakses pembeli.</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <svg class="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1 18h2v-3a4 4 0 014-4h4a4 4 0 014 4v3h2v-3a6 6 0 00-6-6H7a6 6 0 00-6 6v3z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">Pemilik Komunitas</h3>
+                        <p class="text-gray-600">Mengelola konten eksklusif untuk grup premium.</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
+                    <div class="bg-teal-100 p-3 rounded-full">
+                        <svg class="w-8 h-8 text-teal-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.707 9.293a1 1 0 00-1.414-1.414L9 10.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">Agency & Reseller</h3>
+                        <p class="text-gray-600">Menawarkan jasa pembuatan member area murah dan cepat.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Demo Section -->
+    <section class="w-full bg-blue-700 py-16 md:py-20 text-white">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-10">Lihat Bagaimana Sistem Ini Bekerja</h2>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-10 opacity-90">
+                Tonton demo singkat di bawah ini untuk melihat kecepatan dan kemudahan membangun Member Area Anda sendiri di Blogspot.
+            </p>
+            <div class="video-container" style="position: relative; width: 100%; max-width: 800px; margin: 20px auto; aspect-ratio: 16 / 9;">
+    <iframe
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 12px; border: none; shadow: 0 10px 25px rgba(0,0,0,0.2);"
+        src="https://www.youtube.com/embed/zBAp8H35XdI"
+        title="YouTube video player"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen>
+    </iframe>
+</div>
+            </div>
+        <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"eea6f9bff0664998b3412f3ced836fd7","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</div>
+    </section>
+
+    <!-- Fitur Premium Section -->
+    <section class="w-full bg-white py-16 md:py-20">
+        <div class="inner-container">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-center text-blue-700 mb-12">
+                KEDALAMAN SISTEM <br> <span class="text-yellow-500">💎</span> Fitur Premium yang Membuat Bisnis Anda Naik Kelas
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-blue-600 mr-3">1</span>
+                        <h3 class="text-xl font-bold text-gray-900">Sistem Login Member Mandiri</h3>
+                    </div>
+                    <p class="text-gray-600">User bisa daftar dan login sendiri tanpa perlu Anda repot membuatkan akun. Full otomatisasi sejak awal pendaftaran.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-green-600 mr-3">2</span>
+                        <h3 class="text-xl font-bold text-gray-900">Produk Terkunci Otomatis</h3>
+                    </div>
+                    <p class="text-gray-600">Konten eksklusif Anda aman 100%. Hanya member yang sudah login dan terdaftar yang bisa mengakses produk yang dibeli. Anti bocor!</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-purple-600 mr-3">3</span>
+                        <h3 class="text-xl font-bold text-gray-900">Unlimited Produk</h3>
+                    </div>
+                    <p class="text-gray-600">Tidak ada batasan. Bisa upload banyak produk digital, eCourse, atau template sekaligus dalam satu sistem member area.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-yellow-600 mr-3">4</span>
+                        <h3 class="text-xl font-bold text-gray-900">Database Spreadsheet Real-Time</h3>
+                    </div>
+                    <p class="text-gray-600">Semua data member (nama, email, WA) otomatis tersimpan rapi di Google Spreadsheet Anda. Data tidak akan pernah hilang.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-red-600 mr-3">5</span>
+                        <h3 class="text-xl font-bold text-gray-900">Responsive Mobile & Clean Design</h3>
+                    </div>
+                    <p class="text-gray-600">Tampilan modern, bersih, dan sangat user-friendly. Sempurna diakses dari HP. Member betah belajar/mengakses produk Anda.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-teal-500">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-teal-600 mr-3">6</span>
+                        <h3 class="text-xl font-bold text-gray-900">Notifikasi Order Otomatis</h3>
+                    </div>
+                    <p class="text-gray-600">Fitur notifikasi order otomatis melalui email dan whatsapp tanpa biaya tambahan. Anda tahu persis kapan order masuk.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500 md:col-span-2 lg:col-span-1">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-orange-600 mr-3">7</span>
+                        <h3 class="text-xl font-bold text-gray-900">Integrasi Payment Gateway</h3>
+                    </div>
+                    <p class="text-gray-600">Menerima pembayaran secara otomatis dan real-time. Proses transaksi lebih cepat, aman, dan tanpa ribet konfirmasi manual. Anda fokus jualan, sistem yang bekerja.</p>
+                </div>
+				<div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500 md:col-span-2 lg:col-span-1">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl font-extrabold text-orange-600 mr-3">8</span>
+                        <h3 class="text-xl font-bold text-gray-900">Tersedia Fitur Affiliasi</h3>
+                    </div>
+                    <p class="text-gray-600">Cocok bagi anda yang ingin membangun tim untuk mendapatkan penjualan yang lebih banyak dengan sistem affiliasi.</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-600 text-white p-8 md:p-10 rounded-lg shadow-xl mt-16 max-w-5xl mx-auto text-center">
+                <h3 class="text-3xl md:text-4xl font-extrabold mb-6">🤯 BAYANGKAN... Inilah Efek Punya Sistem!</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
+                    <div class="flex flex-col items-start">
+                        <svg class="w-12 h-12 text-yellow-300 mb-4" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 00-1 1v1a1 1 0 002 0V4a1 1 0 00-1-1zm0 5a1 1 0 00-1 1v1a1 1 0 102 0V9a1 1 0 00-1-1zm0 5a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1zm12-8a1 1 0 00-1-1h-1V4a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0V7h1a1 1 0 001-1zm-1 9a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1zM5 11a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1zm5-10a1 1 0 00-1 1v1a1 1 0 102 0V1a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v1a1 1 0 102 0V1a1 1 0 00-1-1zM10 4a1 1 0 00-1 1v1a1 1 0 002 0V5a1 1 0 00-1-1zM4 0a1 1 0 00-1 1v1a1 1 0 002 0V1a1 1 0 00-1-1zm12 0a1 1 0 00-1 1v1a1 1 0 102 0V1a1 1 0 00-1-1zM12 4a1 1 0 00-1 1v1a1 1 0 002 0V5a1 1 0 00-1-1zM4 4a1 1 0 00-1 1v1a1 1 0 002 0V5a1 1 0 00-1-1z"></path></svg>
+                        <h4 class="text-2xl font-bold mb-3">Tidur Nyenyak, Uang Masuk</h4>
+                        <p class="text-blue-100 text-lg">
+                            Kamu tidur nyenyak di malam hari... Member daftar, bayar, dan register sendiri secara otomatis... Akses produk langsung terbuka, data tercatat rapi... <br>
+                            Itu bukan mimpi. Itu SISTEM KERJA OTOMATIS.
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-start">
+                        <svg class="w-12 h-12 text-yellow-300 mb-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path></svg>
+                        <h4 class="text-2xl font-bold mb-3">Peningkatan Nilai Produk</h4>
+                        <ul class="list-disc list-inside text-blue-100 text-lg space-y-2">
+                            <li>Naikkan Harga Jual Anda.</li>
+                            <li>Orang lebih percaya pada brand yang profesional.</li>
+                            <li>Produk Anda terlihat memiliki nilai tinggi.</li>
+                            <li>Anda berhak menetapkan harga yang lebih mahal!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Perbandingan Biaya Section -->
+    <section class="w-full bg-gray-50 py-16 md:py-20">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-12">
+                <span class="text-yellow-500">💰</span> Perbandingan Biaya (Hemat Jutaan)
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-4xl mx-auto">
+                <div class="bg-white p-8 rounded-lg shadow-xl border-t-4 border-red-500">
+                    <h3 class="text-2xl font-bold text-red-600 mb-6">Membership Wordpress</h3>
+                    <div class="space-y-4 text-left text-gray-700 text-lg">
+                        <p class="flex justify-between items-center"><span class="font-semibold">Hosting Bulanan:</span> <span class="text-red-500 font-bold">Rp 100.000 - 300.000</span></p>
+                        <p class="flex justify-between items-center"><span class="font-semibold">Plugin Premium:</span> <span class="text-red-500 font-bold">Biaya Tahunan Mahal</span></p>
+                        <p class="flex justify-between items-center"><span class="font-semibold">Maintenance:</span> <span class="text-red-500 font-bold">Ribet & Butuh Skill</span></p>
+                    </div>
+                </div>
+                <div class="bg-white p-8 rounded-lg shadow-xl border-t-4 border-green-500">
+                    <h3 class="text-2xl font-bold text-green-600 mb-6">Spot Member (Blogspot Membership System)</h3>
+                    <div class="space-y-4 text-left text-gray-700 text-lg">
+                        <p class="flex justify-between items-center"><span class="font-semibold">Hosting Bulanan:</span> <span class="text-green-600 font-bold">GRATIS Selamanya</span></p>
+                        <p class="flex justify-between items-center"><span class="font-semibold">Plugin:</span> <span class="text-green-600 font-bold">Tanpa Plugin Berbayar</span></p>
+                        <p class="flex justify-between items-center"><span class="font-semibold">Maintenance:</span> <span class="text-green-600 font-bold">Sistem Stabil Blogspot</span></p>
+                    </div>
+                </div>
+            </div>
+            <p class="text-2xl md:text-3xl font-extrabold text-blue-600 mt-12">
+                <span class="text-green-500">✅</span> Hemat Jutaan Rupiah per Tahun!
+            </p>
+        </div>
+    </section>
+
+    <!-- Testimoni Section -->
+    <section class="w-full bg-white py-16 md:py-20">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-blue-700 mb-12">Apa Kata Para Pengguna SPOTMEMBER?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div class="bg-blue-50 p-6 rounded-lg shadow-md text-left border-l-4 border-blue-500">
+                    <p class="italic text-gray-700 mb-4">"Gila! Saya kira Blogspot cuma buat tulis-tulis. Ternyata bisa jadi member area secanggih ini. Setupnya cepat, transfer akses ke pembeli jadi nol ribet. Bisnis saya auto-pilot sekarang."</p>
+                    <p class="font-semibold text-gray-900">Rizky Firmansyah</p>
+                    <p class="text-sm text-gray-600">Owner eCourse Desain Grafis</p>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-lg shadow-md text-left border-l-4 border-blue-500">
+                    <p class="italic text-gray-700 mb-4">"Hemat hosting jutaan setahun! Konten template premium saya jadi aman terkunci. Dulu selalu pusing ngurus lisensi manual, sekarang semuanya serba otomatis dari register sampai akses."</p>
+                    <p class="font-semibold text-gray-900">Maya Sari Dewi</p>
+                    <p class="text-sm text-gray-600">Penjual Template Digital</p>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-lg shadow-md text-left border-l-4 border-blue-500">
+                    <p class="italic text-gray-700 mb-4">"Awalnya ragu karena pakai Blogspot, tapi ternyata sistemnya sangat stabil dan cepat. Data member langsung rapi masuk Spreadsheet. Recommended untuk yang benci ribet teknis!"</p>
+                    <p class="font-semibold text-gray-900">Fajar Hidayat</p>
+                    <p class="text-sm text-gray-600">Digital Agency Owner</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Countdown Timer & Bonus Section -->
+    <section class="w-full bg-blue-600 text-white py-16 md:py-20">
+        <div class="inner-container text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-8">
+                HANYA UNTUK HARI INI <br> PROMO KHUSUS + BONUS SPESIAL AKAN BERAKHIR DALAM:
+            </h2>
+            <div id="countdown" class="flex justify-center items-center space-x-4 md:space-x-8 text-5xl md:text-7xl font-bold mb-12">
+                <div><span id="hours" class="block bg-blue-800 p-4 rounded-lg">23</span><span class="text-base md:text-lg mt-2 block">Jam</span></div>
+                <div class="text-3xl md:text-5xl">:</div>
+                <div><span id="minutes" class="block bg-blue-800 p-4 rounded-lg">59</span><span class="text-base md:text-lg mt-2 block">Menit</span></div>
+                <div class="text-3xl md:text-5xl">:</div>
+                <div><span id="seconds" class="block bg-blue-800 p-4 rounded-lg">34</span><span class="text-base md:text-lg mt-2 block">Detik</span></div>
+            </div>
+
+            <h3 class="text-3xl font-extrabold mb-8"><span class="text-yellow-400">🎁</span> Bonus Spesial Untuk Pembeli Hari Ini!</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto text-left mb-10">
+                <div class="bg-blue-800 p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-bold text-yellow-300 mb-2">Tutorial Instalasi Lengkap</h4>
+                    <p class="text-blue-100">Panduan A-Z, bahkan untuk pemula Blogspot.</p>
+                </div>
+                <div class="bg-blue-800 p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-bold text-yellow-300 mb-2">Template Landingpage Siap Pakai</h4>
+                    <p class="text-blue-100">Tinggal edit teks dan langsung jualan.</p>
+                </div>
+                <div class="bg-blue-800 p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-bold text-yellow-300 mb-2">Bonus Produk Siap Jual</h4>
+                    <p class="text-blue-100">Puluhan produk digital untuk klien pertama Anda.</p>
+                </div>
+            </div>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto">
+                Semua bonus ini dirancang agar Anda bisa langsung praktek dan memiliki member area profesional dalam hitungan jam.
+            </p>
+        </div>
+    </section>
+
+    <!-- Order Section (Harga & CTA) -->
+    <section id="order-section" class="w-full bg-yellow-400 py-16 md:py-20 text-center">
+        <div class="inner-container">
+            <p class="text-red-700 text-xl md:text-2xl font-bold line-through mb-4">Harga Normal: Rp 399.000</p>
+            <p class="text-blue-800 text-5xl md:text-7xl font-extrabold mb-10">
+                Rp 99.000,-
+            </p>
+            <a href="https://melimpah.biz.id/checkout?id=prd-13" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-12 rounded-full text-2xl md:text-3xl transition duration-300 ease-in-out transform hover:scale-105 shadow-xl">
+                KUNCI HARGA PROMO SEKARANG
+            </a>
+            <p class="text-gray-800 text-lg md:text-xl mt-8 max-w-2xl mx-auto">
+                Jangan Sampai Terlambat. Amankan sistem otomatisasi bisnis digital Anda hari ini.
+            </p>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="w-full bg-white py-16 md:py-20">
+        <div class="inner-container">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-center text-blue-700 mb-12">Pertanyaan Umum (FAQ)</h2>
+            <div class="max-w-3xl mx-auto">
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center text-xl font-semibold text-gray-800">
+                        Apa itu Spotmember V2?
+                        <svg class="accordion-icon w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content text-gray-700">
+                        <p>Spotmember V2 adalah sistem yang memungkinkan Anda mengubah Blogspot gratis menjadi platform member area premium. Anda bisa menjual produk digital, eCourse, atau konten eksklusif lainnya dengan sistem login otomatis, tanpa perlu hosting mahal.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center text-xl font-semibold text-gray-800">
+                        Apakah saya perlu keahlian teknis khusus untuk menggunakannya?
+                        <svg class="accordion-icon w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content text-gray-700">
+                        <p>Tidak! Spotmember V2 dirancang agar mudah digunakan bahkan oleh pemula. Kami menyediakan tutorial instalasi lengkap A-Z yang akan memandu Anda langkah demi langkah.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center text-xl font-semibold text-gray-800">
+                        Apakah ini benar-benar gratis hosting?
+                        <svg class="accordion-icon w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content text-gray-700">
+                        <p>Betul sekali. Spotmember V2 memanfaatkan infrastruktur Blogspot yang berjalan di server Google, sehingga Anda tidak perlu membayar biaya hosting bulanan. Ini GRATIS selamanya.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center text-xl font-semibold text-gray-800">
+                        Bisakah saya menjual banyak produk?
+                        <svg class="accordion-icon w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content text-gray-700">
+                        <p>Ya, Spotmember V2 mendukung unlimited produk. Anda bisa mengelola berbagai macam produk digital dalam satu member area yang sama.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center text-xl font-semibold text-gray-800">
+                        Bagaimana sistem keamanannya?
+                        <svg class="accordion-icon w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div class="accordion-content text-gray-700">
+                        <p>Konten Anda akan terkunci secara otomatis. Hanya member yang sudah terdaftar dan login yang bisa mengakses produk yang telah mereka beli. Ini meminimalkan risiko pembocoran konten.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="w-full bg-gray-900 text-gray-400 py-8">
+        <div class="inner-container text-center">
+            <p class="mb-2">Spot Member</p>
+            <p>Ubah Blogspot Anda menjadi mesin uang otomatis.</p>
+            <p class="mt-4 text-sm">&copy; Copyright 2026 Spot Member. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/628871271633" target="_blank" class="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg flex items-center justify-center pulse-animation z-50">
+        <i class="fab fa-whatsapp text-3xl"></i>
+    </a>
+
+    <script>
+        // Countdown Timer
+        const countdown = () => {
+            const endDate = new Date();
+            endDate.setHours(endDate.getHours() + 23);
+            endDate.setMinutes(endDate.getMinutes() + 59);
+            endDate.setSeconds(endDate.getSeconds() + 34);
+
+            const timer = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = endDate - now;
+
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                document.getElementById('hours').innerText = hours < 10 ? '0' + hours : hours;
+                document.getElementById('minutes').innerText = minutes < 10 ? '0' + minutes : minutes;
+                document.getElementById('seconds').innerText = seconds < 10 ? '0' + seconds : seconds;
+
+                if (distance < 0) {
+                    clearInterval(timer);
+                    document.getElementById('countdown').innerHTML = '<span class="text-red-400 text-4xl font-bold">Penawaran Berakhir!</span>';
+                }
+            }, 1000);
+        };
+        countdown();
+
+        // FAQ Accordion
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('.accordion-icon');
+
+                content.classList.toggle('active');
+                icon.classList.toggle('rotate');
+            });
+        });
+    </script>
+</body>
+</html></div>
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+const sticky = document.getElementById('sticky-cta');
+window.addEventListener('scroll', () => {
+  window.scrollY > 400 ? sticky?.classList.remove('hidden-cta') : sticky?.classList.add('hidden-cta');
+});
+
+document.querySelectorAll('.faq-trigger').forEach(t => {
+  t.addEventListener('click', () => t.parentElement.classList.toggle('active'));
+});
+
+// Smooth Scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const target = document.querySelector(this.getAttribute('href'));
+    if(target) {
+      e.preventDefault();
+      window.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
+    }
+  });
+});
+</script>
+</body>
+</html>
