@@ -4,14 +4,20 @@ const ss = SpreadsheetApp.getActiveSpreadsheet();
    CONFIG.JS INTEGRATION
    (Server-side Configuration)
 ========================= */
+const SCRIPT_CONFIG = {
+  // SCRIPT_URL: URL Web App yang sudah dideploy
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzbZ2uVuN1kr93pP-f8k5sTBK6ZlV8LbIx2HuYI4ufKqz7d9NL6HcnNqyFk7Gs6TANp/exec",
+  
+  // Environment (production/development)
+  ENV: "production"
+};
 
 function getScriptConfig(key) {
-  const cfg = getSettingsMap_();
-  return getCfgFrom_(cfg, key);
+  return SCRIPT_CONFIG[key] || "";
 }
 
 function testConfiguration() {
-  const url = getScriptConfig("script_url");
+  const url = getScriptConfig("SCRIPT_URL");
   Logger.log("Testing Configuration Access: " + url);
   return { status: "success", script_url: url };
 }
@@ -136,7 +142,12 @@ function doPost(e) {
 
     const cfg = getSettingsMap_();
 
-
+    // ====================================================================
+    // 🚀 RADAR DUITKU: DETEKSI WEBHOOK (FORM DATA)
+    // ====================================================================
+    if (e.parameter && e.parameter.merchantCode && e.parameter.merchantOrderId && e.parameter.signature) {
+      return handleDuitkuCallback(e.parameter, cfg);
+    }
 
     const payloadString = e.postData.contents;
     let data = null;
@@ -213,7 +224,7 @@ function doPost(e) {
       case "forgot_password": return jsonRes(forgotPassword(data));
       case "get_dashboard_data": return jsonRes(getDashboardData(data));
       case "normalize_users": return jsonRes(normalizeUsersSheet());
-
+      case "create_duitku_payment": return jsonRes(createDuitkuPayment(data, cfg));
       case "delete_product": return jsonRes(deleteProduct(data));
       case "delete_page": return jsonRes(deletePage(data));
       case "check_slug": return jsonRes(checkSlug(data));
@@ -501,8 +512,7 @@ function createOrder(d, cfg) {
     const oS = mustSheet_("Orders");
     const uS = mustSheet_("Users");
 
-    // Use timestamp + random to reduce collision risk significantly
-    const inv = "INV-" + Date.now().toString(36).toUpperCase().slice(-5) + Math.floor(1000 + Math.random() * 9000);
+    const inv = "INV-" + Math.floor(10000 + Math.random() * 90000);
     const email = String(d.email || "").trim().toLowerCase();
     if (!email) return { status: "error", message: "Email wajib diisi" };
 
@@ -859,7 +869,7 @@ function getProductDetail(d, cfg) {
       bank_norek: getCfgFrom_(cfg, "bank_norek"),
       bank_owner: getCfgFrom_(cfg, "bank_owner"),
       wa_admin: getCfgFrom_(cfg, "wa_admin"),
-
+      duitku_active: !!getCfgFrom_(cfg, "duitku_merchant_code"),
       pixel_id: productData.pixel_id, // Pass pixel_id (possibly overridden)
       pixel_token: productData.pixel_token,
       pixel_test_code: productData.pixel_test_code
@@ -1058,8 +1068,7 @@ function getDashboardData(d) {
             site_name: getCfgFrom_(cfg, "site_name"),
             site_logo: getCfgFrom_(cfg, "site_logo"),
             site_favicon: getCfgFrom_(cfg, "site_favicon"),
-            wa_admin: getCfgFrom_(cfg, "wa_admin"),
-            script_url: getCfgFrom_(cfg, "script_url")
+            wa_admin: getCfgFrom_(cfg, "wa_admin")
         },
         products: productsData,
         pages: globalPages.data || [],
@@ -1351,13 +1360,9 @@ function checkSlug(d) {
 }
 
 function updateSettings(d) {
-  if (!d.payload || typeof d.payload !== 'object') {
-    return { status: "error", message: "Payload tidak valid" };
-  }
   const s = mustSheet_("Settings");
   const r = s.getDataRange().getValues();
   for (let k in d.payload) {
-    if (!Object.prototype.hasOwnProperty.call(d.payload, k)) continue;
     let f = false;
     for (let i = 1; i < r.length; i++) {
       if (r[i][0] === k) {
@@ -1382,8 +1387,7 @@ function getImageKitAuth(cfg) {
 
   const t = Utilities.getUuid();
   const exp = Math.floor(Date.now() / 1000) + 2400;
-  // ImageKit requires signing: token + expire (as string concatenation without separator)
-  const toSign = t + String(exp);
+  const toSign = t + exp;
 
   const sig = Utilities.computeHmacSignature(Utilities.MacAlgorithm.HMAC_SHA_1, toSign, p)
     .map(b => ("0" + (b & 255).toString(16)).slice(-2))
@@ -1402,10 +1406,6 @@ function changeUserPassword(d) {
     const email = String(d.email).trim().toLowerCase();
     const oldPass = String(d.old_password);
     const newPass = String(d.new_password);
-
-    if (!newPass || newPass.length < 6) {
-      return { status: "error", message: "Password baru minimal 6 karakter" };
-    }
 
     for (let i = 1; i < r.length; i++) {
       if (String(r[i][1]).trim().toLowerCase() === email) {
@@ -1599,10 +1599,147 @@ function normalizeUsersSheet() {
     return { status: "error", message: e.toString() };
   }
 }
+/* =========================
+   DUITKU PAYMENT GATEWAY
+========================= */
+function md5_(str) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, str)
+    .map(b => ("0" + (b & 0xFF).toString(16)).slice(-2)).join("");
+}
 
+function createDuitkuPayment(d, cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+    const mCode = getCfgFrom_(cfg, "duitku_merchant_code");
+    const mKey = getCfgFrom_(cfg, "duitku_merchant_key");
+    const isSandbox = String(getCfgFrom_(cfg, "duitku_sandbox_mode")) === "true";
+    
+    if (!mCode || !mKey) return { status: "error", message: "Duitku belum dikonfigurasi di Admin Area" };
 
+    const url = isSandbox 
+      ? "https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry" 
+      : "https://passport.duitku.com/webapi/api/merchant/v2/inquiry";
 
+    const amount = parseInt(d.amount);
+    const orderId = String(d.invoice);
+    const product = String(d.product_name).substring(0, 250); // Limit chars
+    const email = String(d.email);
+    const phone = String(d.phone || "");
+    const name = String(d.name || "Customer");
 
+    // Signature: merchantCode + merchantOrderId + paymentAmount + apiKey
+    const signature = md5_(mCode + orderId + amount + mKey);
+
+    const payload = {
+      merchantCode: mCode,
+      paymentAmount: amount,
+      merchantOrderId: orderId,
+      productDetails: product,
+      email: email,
+      phoneNumber: phone,
+      customerVaName: name,
+      callbackUrl: getCfgFrom_(cfg, "site_url") + "/exec", // Assuming generic webhook URL
+      returnUrl: getCfgFrom_(cfg, "site_url") + "/thank-you.html", // or dashboard
+      signature: signature,
+      expiryPeriod: 1440 // 24 hours
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const res = UrlFetchApp.fetch(url, options);
+    const resData = JSON.parse(res.getContentText());
+
+    if (resData.paymentUrl) {
+      return { status: "success", paymentUrl: resData.paymentUrl, raw: resData };
+    } else {
+      return { status: "error", message: resData.statusMessage || "Gagal membuat payment URL" };
+    }
+  } catch (e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+function handleDuitkuCallback(params, cfg) {
+  try {
+    cfg = cfg || getSettingsMap_();
+    const mCode = params.merchantCode;
+    const amount = params.amount;
+    const orderId = params.merchantOrderId;
+    const signature = params.signature;
+    const resultCode = params.resultCode;
+    const refId = params.reference;
+
+    // 1. Validasi Signature
+    const mKey = getCfgFrom_(cfg, "duitku_merchant_key");
+    // Callback Sig: merchantCode + amount + merchantOrderId + apiKey
+    const calcSig = md5_(mCode + amount + orderId + mKey);
+
+    if (signature !== calcSig) {
+      return ContentService.createTextOutput("Bad Signature").setMimeType(ContentService.MimeType.TEXT);
+    }
+
+    // 2. Cek Status (00 = Success)
+    if (resultCode !== "00") {
+      return ContentService.createTextOutput("Payment Failed/Pending").setMimeType(ContentService.MimeType.TEXT);
+    }
+
+    // 3. Update Order ke Lunas
+    const s = mustSheet_("Orders");
+    const orders = s.getDataRange().getValues();
+    let orderFound = false;
+
+    for (let i = 1; i < orders.length; i++) {
+      if (String(orders[i][0]) === String(orderId)) { // Match Invoice
+        if (String(orders[i][7]) === "Lunas") {
+            return ContentService.createTextOutput("Already Paid").setMimeType(ContentService.MimeType.TEXT);
+        }
+        
+        s.getRange(i + 1, 8).setValue("Lunas"); // Status
+        
+        // Trigger Notifikasi (Reuse logic updateOrderStatus / handleMootaWebhook)
+        const uEmail = orders[i][1];
+        const uName = orders[i][2];
+        const uWA = orders[i][3];
+        const pId = orders[i][4];
+        const pName = orders[i][5];
+        const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+
+        // Cari Link Akses
+        let accessUrl = "";
+        const pS = ss.getSheetByName("Access_Rules");
+        if (pS) {
+          const pData = pS.getDataRange().getValues();
+          for (let k = 1; k < pData.length; k++) {
+             if (String(pData[k][0]) === String(pId)) { accessUrl = pData[k][3]; break; }
+          }
+        }
+
+        // WA
+        sendWA(uWA, `🎉 *PEMBAYARAN LUNAS (DUITKU)!* 🎉\n\nHalo *${uName}*, pembayaran invoice #${orderId} telah berhasil.\n\n🚀 *Akses Produk:* ${accessUrl}\n\nTerima kasih!`, cfg);
+        
+        // Email
+        sendEmail(uEmail, `Pembayaran Sukses: ${orderId}`, `<p>Halo ${uName}, pembayaran Anda sukses. <a href="${accessUrl}">Klik di sini untuk akses produk</a>.</p>`, cfg);
+        
+        // Admin WA
+        const adminWA = getCfgFrom_(cfg, "wa_admin");
+        sendWA(adminWA, `💰 *DUITKU PAYMENT!* 💰\n\nInv: #${orderId}\nAmt: Rp ${Number(amount).toLocaleString()}\nRef: ${refId}`, cfg);
+
+        orderFound = true;
+        break;
+      }
+    }
+
+    return ContentService.createTextOutput("OK").setMimeType(ContentService.MimeType.TEXT);
+
+  } catch (e) {
+    return ContentService.createTextOutput("Error: " + e.toString()).setMimeType(ContentService.MimeType.TEXT);
+  }
+}
 
 /* =========================
    AUTO-PAYMENT SYSTEM (MOOTA WEBHOOK)

@@ -5,7 +5,7 @@
 
     <script>
         (function() {
-            const CACHE_KEY = 'melimpah_global_settings';
+            const CACHE_KEY = 'cepat_global_settings';
             const CACHE_AGE = 60 * 60 * 1000; 
             window.waAdminGlobal = '';
 
@@ -18,9 +18,35 @@
                 }
                 if(data.wa_admin) window.waAdminGlobal = data.wa_admin;
                 
-                // Auto Replace Text di Title Browser
+                // Helper Meta Tags
+                const setMeta = (attrName, attrValue, content) => {
+                    if(!content) return;
+                    let element = document.querySelector(`meta[${attrName}="${attrValue}"]`);
+                    if (!element) {
+                        element = document.createElement('meta');
+                        element.setAttribute(attrName, attrValue);
+                        document.head.appendChild(element);
+                    }
+                    element.setAttribute('content', content);
+                };
+
+                // Auto Replace Text di Title Browser & Meta Title
                 if(data.site_name) {
-                    document.title = document.title.replace(/Melimpah Digital/gi, data.site_name).replace(/Melimpah/gi, data.site_name);
+                    document.title = document.title.replace(/Cepat Digital/gi, data.site_name).replace(/Cepat/gi, data.site_name);
+                    setMeta('property', 'og:title', data.site_name);
+                    setMeta('name', 'title', data.site_name);
+                }
+
+                // Tagline -> Meta Description
+                if(data.site_tagline) {
+                    setMeta('property', 'og:description', data.site_tagline);
+                    setMeta('name', 'description', data.site_tagline);
+                }
+
+                // Logo URL -> Meta Image
+                if(data.site_logo) {
+                    setMeta('property', 'og:image', data.site_logo);
+                    setMeta('name', 'image', data.site_logo);
                 }
 
                 // Eksekusi DOM HTML (Menyuntikkan Teks ke Halaman)
@@ -135,19 +161,19 @@
     </header>
 
     <section class="max-w-7xl mx-auto px-6 py-20 text-center">
-        <div class="inline-block bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 fade-in">KOLEKSI TERBARU</div>
-        <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-6 text-slate-900 fade-in delay-1">Solusi Digital Praktis untuk <br><span class="text-indigo-600">Maksimalkan Hasil Bisnis Anda</span></h1>
-        <p class="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto mb-10 fade-in delay-2 font-medium">Temukan produk digital berkualitas yang siap membantu Anda mencapai tujuan lebih cepat dan efisien.</p>
+        <div class="inline-block bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 fade-in">Mulai Bisnis Anda dari Sini</div>
+        <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-6 text-slate-900 fade-in delay-1">Produk Digital Praktis untuk <br><span class="text-indigo-600">UMKM yang Baru Mulai</span></h1>
+        <p class="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto mb-10 fade-in delay-2 font-medium">Akses produk digital yang dirancang khusus untuk UMKM pemula—langsung pakai, langsung jalan, tanpa perlu pengalaman teknis.</p>
         <a href="#katalog" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl shadow-slate-300 hover:scale-105 transition-all fade-in delay-3">Jelajahi Katalog Sekarang</a>
     </section>
 
     <section id="katalog" class="max-w-7xl mx-auto px-6 py-10 mb-20 scroll-mt-24">
         <div class="text-center mb-12">
-            <h2 class="text-3xl font-black mb-4">Pilihan Produk Unggulan</h2>
-            <p class="text-slate-500">Kurasi produk terbaik yang telah dipercaya ribuan pengguna di seluruh Indonesia.</p>
+            <h2 class="text-3xl font-black mb-4">Pilihan Produk Digital</h2>
+            <p class="text-slate-500">Sudah digunakan ribuan pelaku UMKM di seluruh Indonesia.</p>
         </div>
         
-        <div id="public-products" class="grid grid-cols-2 gap-4 md:gap-8">
+        <div id="public-products" class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
             <div id="katalog-loader" class="col-span-full text-center py-10">
                 <div class="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p class="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Memuat Katalog Produk...</p>
@@ -158,7 +184,7 @@
     <footer class="bg-white border-t py-12 mt-20">
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
             <div>
-                <h3 class="text-xl font-black text-indigo-600 mb-4 dyn-site-name uppercase">MELIMPAH</h3>
+                <h3 class="text-xl font-black text-indigo-600 mb-4 dyn-site-name uppercase">CEPAT</h3>
                 <p class="text-sm text-slate-500 dyn-site-tagline">Platform penyedia produk digital dan kursus online terpercaya di Indonesia.</p>
             </div>
             <div>
@@ -176,70 +202,13 @@
             </div>
         </div>
         <div class="text-center text-xs text-slate-400 mt-12 pt-8 border-t">
-            &copy; 2026 <span class="dyn-site-name">Melimpah Digital</span>. All rights reserved.
+            &copy; 2026 <span class="dyn-site-name">Cepat Digital</span>. All rights reserved.
         </div>
     </footer>
 
     <script>
         // CACHE_KEY katalog tetap di sini
-        const CACHE_KEY_CATALOG = 'melimpah_public_catalog';
-
-        // --- UTILITIES: Fetch with Retry & Logging ---
-        async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000, timeout = 10000) {
-            for (let i = 0; i <= retries; i++) {
-                const controller = new AbortController();
-                const id = setTimeout(() => controller.abort(), timeout);
-                options.signal = controller.signal;
-                
-                try {
-                    const response = await fetch(url, options);
-                    clearTimeout(id);
-                    if (!response.ok) throw new Error(`HTTP_ERROR_${response.status}`);
-                    return response;
-                } catch (error) {
-                    clearTimeout(id);
-                    const isLastAttempt = i === retries;
-                    
-                    // Categorize Error
-                    let errorType = 'UNKNOWN';
-                    if (error.name === 'AbortError') errorType = 'TIMEOUT';
-                    else if (error.message.startsWith('HTTP_ERROR')) errorType = 'HTTP';
-                    else if (error.name === 'TypeError') errorType = 'NETWORK';
-                    
-                    console.warn(`Attempt ${i+1} failed: ${errorType}`, error);
-
-                    if (isLastAttempt) {
-                        error.type = errorType;
-                        throw error;
-                    }
-                    
-                    // Log to server on first failure (warning)
-                    if (i === 0) logErrorToServer('catalog_fetch_retry', error.message);
-
-                    const waitTime = backoff * Math.pow(2, i) + (Math.random() * 200); // Jitter
-                    await new Promise(r => setTimeout(r, waitTime));
-                }
-            }
-        }
-
-        function logErrorToServer(context, message) {
-            // Fire and forget logging
-            if(typeof SCRIPT_URL !== 'undefined') {
-                fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Don't block on CORS for logging
-                    body: JSON.stringify({
-                        action: 'log_analytics_event',
-                        event: 'error',
-                        label: context,
-                        value: message,
-                        ua: navigator.userAgent
-                    })
-                }).catch(() => {});
-            }
-        }
-
-        // --- END UTILITIES ---
+        const CACHE_KEY_CATALOG = 'cepat_public_catalog';
 
         // Fungsi Render HTML Produk
         function renderCatalog(products) {
@@ -247,37 +216,48 @@
             
             // Safety check: Pastikan products adalah array valid
             if (!products || !Array.isArray(products) || products.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-12 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50">
-                        <i data-lucide="package-open" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
-                        <h3 class="text-lg font-bold text-slate-700">Belum Ada Produk</h3>
-                        <p class="text-slate-500 mt-2">Katalog sedang disiapkan. Silakan kembali lagi nanti.</p>
-                        <button onclick="loadPublicCatalog(true)" class="mt-6 text-indigo-600 font-bold text-sm hover:underline">
-                            Refresh Katalog
-                        </button>
-                    </div>`;
-                lucide.createIcons();
+                container.innerHTML = '<p class="text-slate-400 text-center col-span-full py-10 border-2 border-dashed rounded-3xl">Katalog sedang diperbarui. Silakan kembali lagi nanti.</p>';
                 return;
             }
 
+            // Dapatkan Affiliate Ref (URL Priority -> LocalStorage Fallback)
+            const urlParams = new URLSearchParams(window.location.search);
+            const affRef = urlParams.get('ref') || urlParams.get('aff_id') || localStorage.getItem('cepat_affiliate');
+            const affParam = affRef ? `&ref=${affRef}` : '';
+
             container.innerHTML = [...products].reverse().map((p, index) => {
                 let delayClass = `delay-${(index % 3) + 1}`;
-                const targetLink = (p.lp_url && p.lp_url !== "") ? p.lp_url : `checkout.html?id=${p.id}`;
+                
+                // Logic URL Detail (Bisa ke LP atau Checkout)
+                let detailUrl = (p.lp_url && p.lp_url !== "") ? p.lp_url : `checkout.html?id=${p.id}`;
+                // Append ref to detailUrl
+                if(affRef) {
+                     detailUrl += (detailUrl.includes('?') ? '&' : '?') + `ref=${affRef}`;
+                }
+
+                // Logic URL Checkout (Langsung ke Transaksi)
+                const checkoutUrl = `checkout.html?id=${p.id}${affParam}`;
 
                 return `
                 <div class="bg-white p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col h-full fade-in ${delayClass}">
-                    <div class="mb-3 md:mb-6"><span class="bg-indigo-50 text-indigo-600 px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">PRODUK PILIHAN</span></div>
                     ${p.image_url ? `<div class="w-full aspect-square rounded-xl md:rounded-2xl overflow-hidden mb-4 md:mb-6 border border-slate-100"><img src="${p.image_url}" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" onerror="this.style.display='none'"></div>` : ''}
                     <h3 class="text-sm md:text-xl font-bold text-slate-800 mb-1 md:mb-2 line-clamp-2">${p.title}</h3>
                     <p class="text-xs md:text-sm text-slate-500 mb-4 md:mb-8 flex-1 line-clamp-3">${p.desc || 'Dapatkan akses eksklusif ke produk berkualitas tinggi yang telah terbukti memberikan hasil.'}</p>
                     <div class="flex flex-col md:flex-row md:items-center justify-between mt-auto pt-4 md:pt-6 border-t border-slate-50 gap-3 md:gap-0">
-                        <span class="text-sm md:text-lg font-black text-slate-800">Rp ${Number(p.harga || 0).toLocaleString('id-ID')}</span>
-                        <a href="${targetLink}" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            class="bg-slate-900 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-bold text-[10px] md:text-xs hover:bg-indigo-600 transition-colors shadow-lg shadow-slate-200 text-center w-full md:w-auto">
-                            Lihat Detail
-                        </a>
+                        <span class="text-sm md:text-lg font-black text-slate-800 mb-3 md:mb-0">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
+                        
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <a href="${detailUrl}" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="bg-slate-100 text-slate-600 px-3 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl font-bold text-[10px] md:text-xs hover:bg-slate-200 transition-colors text-center flex-1 md:flex-none">
+                                Detail
+                            </a>
+                            <a href="${checkoutUrl}" 
+                                class="bg-[#EE4D2D] text-white px-3 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl font-bold text-[10px] md:text-xs hover:opacity-90 transition-opacity shadow-lg shadow-orange-200 text-center flex-1 md:flex-none">
+                                Check Out
+                            </a>
+                        </div>
                     </div>
                 </div>
                 `;
@@ -287,106 +267,40 @@
         }
 
         // --> FUNGSI LOADING SAT SET (Optimistic UI & Background Sync)
-        async function loadPublicCatalog(forceRefresh = false) {
+        async function loadPublicCatalog() {
             const cachedData = localStorage.getItem(CACHE_KEY_CATALOG);
-            let hasRenderedCache = false;
             
-            // JIKA ADA CACHE & BUKAN FORCE REFRESH: Langsung render!
-            if (cachedData && !forceRefresh) {
+            // JIKA ADA CACHE: Langsung render tanpa spinner loading!
+            if (cachedData) {
                 try {
-                    const parsed = JSON.parse(cachedData);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        renderCatalog(parsed);
-                        hasRenderedCache = true;
-                    }
+                    renderCatalog(JSON.parse(cachedData));
                 } catch(e) {
                     console.error("Cache corrupted", e);
                     localStorage.removeItem(CACHE_KEY_CATALOG);
                 }
             } 
 
-            // Jika belum ada cache yg dirender, tampilkan spinner
-            if (!hasRenderedCache) {
-                document.getElementById('public-products').innerHTML = `
-                <div id="katalog-loader" class="col-span-full text-center py-10">
-                    <div class="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Memuat Katalog Produk...</p>
-                </div>`;
-            }
-
-            // Pengecekan data terbaru dengan Retry & Timeout
-            const safetyTimer = setTimeout(() => {
-                 if (!hasRenderedCache && document.getElementById('katalog-loader')) {
-                     console.error("Safety Timeout: Force stop loading");
-                     const container = document.getElementById('public-products');
-                     if(container) {
-                        container.innerHTML = `
-                        <div class="col-span-full text-center py-12 border-2 border-dashed border-red-200 rounded-3xl bg-red-50">
-                            <i data-lucide="clock" class="w-12 h-12 text-red-300 mx-auto mb-4"></i>
-                            <h3 class="text-lg font-bold text-red-700">Waktu Habis</h3>
-                            <p class="text-red-500 mt-2 text-sm">Gagal memuat katalog tepat waktu.</p>
-                            <button onclick="loadPublicCatalog(true)" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-200 transition-all">
-                                Coba Lagi
-                            </button>
-                        </div>`;
-                        lucide.createIcons();
-                     }
-                 }
-            }, 45000); // 45 detik safety valve
-
+            // Pengecekan data terbaru di belakang layar
             try {
-                if(typeof SCRIPT_URL === 'undefined') throw new Error("Konfigurasi API (SCRIPT_URL) hilang.");
+                if(typeof SCRIPT_URL === 'undefined') return; // Cek SCRIPT_URL dari config.js
                 
-                const res = await fetchWithRetry(SCRIPT_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'get_products', email: '' }) 
-                });
-                
-                clearTimeout(safetyTimer); // Clear safety timer if fetch completes
-                
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_products', email: '' }) });
                 const r = await res.json();
-                console.log("Catalog API Response:", r); // Debug log
                 
                 if (r.status === 'success') {
-                    // Fix: Gunakan r.data sesuai response appscript.js, fallback ke available jika perlu
-                    const data = Array.isArray(r.data) ? r.data : (Array.isArray(r.available) ? r.available : []);
-                    console.log("Parsed Products:", data.length); // Debug log
-
+                    // Pastikan r.available adalah array, jika tidak gunakan array kosong
+                    const data = Array.isArray(r.available) ? r.available : [];
                     const freshData = JSON.stringify(data);
                     
-                    // Update cache & UI hanya jika data berubah
-                    if (freshData !== cachedData) {
+                    if(cachedData !== freshData) {
                         localStorage.setItem(CACHE_KEY_CATALOG, freshData);
                         renderCatalog(data);
-                    } else if (forceRefresh) {
-                        renderCatalog(data); // Re-render if forced
                     }
-                } else {
-                    throw new Error(r.message || "Gagal memuat data dari server");
                 }
             } catch (err) { 
-                clearTimeout(safetyTimer);
-                console.error('Sync failed', err);
-                
-                // Jika fetch gagal total dan belum ada cache yang tampil
-                if (!hasRenderedCache) {
-                    let msg = "Gagal terhubung ke server.";
-                    if (err.type === 'TIMEOUT') msg = "Koneksi lambat (Timeout).";
-                    if (err.type === 'NETWORK') msg = "Koneksi internet bermasalah.";
-                    
-                    document.getElementById('public-products').innerHTML = `
-                    <div class="col-span-full text-center py-12 border-2 border-dashed border-red-200 rounded-3xl bg-red-50">
-                        <i data-lucide="wifi-off" class="w-12 h-12 text-red-300 mx-auto mb-4"></i>
-                        <h3 class="text-lg font-bold text-red-700">Gagal Memuat Katalog</h3>
-                        <p class="text-red-500 mt-2 text-sm">${msg}</p>
-                        <button onclick="loadPublicCatalog(true)" class="mt-6 bg-red-600 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-200 transition-all">
-                            Coba Lagi
-                        </button>
-                    </div>`;
-                    lucide.createIcons();
-                } else {
-                    // Jika sudah ada cache, tampilkan indikator offline kecil (opsional)
-                    // console.log("Offline mode: using cached data");
+                console.error('Background sync failed', err);
+                if (!cachedData) {
+                    document.getElementById('public-products').innerHTML = '<p class="text-red-500 text-center col-span-full bg-red-50 py-4 rounded-2xl">Gagal memuat katalog. Coba refresh halaman.</p>';
                 }
             }
         }

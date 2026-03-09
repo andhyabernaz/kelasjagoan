@@ -2,6 +2,40 @@
 <html lang="id">
 <head>
     <script src="config.js?v=2026_1"></script>
+    <script>
+        (function() {
+            const CACHE_KEY = 'cepat_global_settings';
+            const CACHE_AGE = 60 * 60 * 1000; 
+            function applyGlobalSettings(data) {
+                if(data.site_favicon) {
+                    let link = document.querySelector("link[rel~='icon']");
+                    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+                    link.href = data.site_favicon;
+                }
+                if(data.site_name) {
+                    document.title = document.title.replace(/Cepat Digital/gi, data.site_name).replace(/Cepat/gi, data.site_name);
+                }
+            }
+            const cachedStr = localStorage.getItem(CACHE_KEY);
+            let cached = null;
+            try { cached = JSON.parse(cachedStr); } catch(e){}
+            if (cached && cached.data) { applyGlobalSettings(cached.data); }
+            
+            // 404 is static, rarely needs fetch, but good to have
+            if (!cached || !cached.time || (Date.now() - cached.time > CACHE_AGE)) {
+                 if(typeof SCRIPT_URL !== 'undefined') {
+                    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_global_settings' }) })
+                        .then(res => res.json())
+                        .then(r => {
+                            if(r.status === 'success') {
+                                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: r.data, time: Date.now() }));
+                                applyGlobalSettings(r.data); 
+                            }
+                        }).catch(e => {});
+                 }
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bio Link - Loading...</title>
@@ -61,7 +95,7 @@
 
         <!-- Branding Footer -->
         <div class="py-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Powered by <span id="footer-brand">Melimpah</span>
+            Powered by <span id="footer-brand">Cepat</span>
         </div>
 
     </div>
@@ -84,8 +118,8 @@
         // If viewing a user bio, that user is the referrer. Otherwise check ref/aff_id.
         const refId = userId || urlParams.get('ref') || urlParams.get('aff_id');
         
-        const CACHE_SETTINGS = 'melimpah_global_settings';
-        const CACHE_PRODUCTS = 'melimpah_public_products';
+        const CACHE_SETTINGS = 'cepat_global_settings';
+        const CACHE_PRODUCTS = 'cepat_public_products';
         
         document.addEventListener('DOMContentLoaded', init);
 
@@ -146,7 +180,8 @@
             document.title = data.display_name || 'Bio Link';
             document.getElementById('profile-name').innerText = data.display_name || 'Member';
             document.getElementById('profile-bio').innerText = data.bio || '';
-            document.getElementById('footer-brand').innerText = 'Kelas Jagoan'; 
+            const _cachedBrand = localStorage.getItem(CACHE_SETTINGS);
+            document.getElementById('footer-brand').innerText = _cachedBrand ? (JSON.parse(_cachedBrand).data.site_name || 'Cepat') : 'Cepat';
 
             if (data.photo_url) {
                 document.getElementById('profile-img').src = data.photo_url;
@@ -161,7 +196,7 @@
             document.title = data.site_name || 'Bio Link';
             document.getElementById('profile-name').innerText = data.site_name || 'Admin';
             document.getElementById('profile-bio').innerText = data.site_tagline || 'Welcome to my official bio link page.';
-            document.getElementById('footer-brand').innerText = data.site_name || 'Melimpah';
+            document.getElementById('footer-brand').innerText = data.site_name || 'Cepat';
             
             if (data.site_logo) {
                 document.getElementById('profile-img').src = data.site_logo;

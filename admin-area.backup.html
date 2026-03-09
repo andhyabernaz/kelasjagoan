@@ -525,7 +525,25 @@
                                     <input type="text" id="set-wa" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono text-sm">
                                 </div>
                                 
-
+                                <div class="pt-4 border-t border-slate-100 mt-4">
+                                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <i data-lucide="credit-card" class="w-4 h-4 text-indigo-500"></i> Payment Gateway (Duitku)
+                                    </h4>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Merchant Code</label>
+                                            <input type="text" id="set-duitku-code" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2 block">Merchant Key (API Key)</label>
+                                            <input type="text" id="set-duitku-key" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono text-sm">
+                                        </div>
+                                        <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                            <input type="checkbox" id="set-duitku-sandbox" class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                            <label for="set-duitku-sandbox" class="text-xs font-bold text-slate-600 uppercase tracking-wider cursor-pointer select-none">Aktifkan Mode Sandbox (Test)</label>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <div class="hidden">
                                     <input type="text" id="set-ik-pub"><input type="text" id="set-ik-end">
@@ -1033,8 +1051,10 @@
             document.getElementById('set-logo').value = r.settings.site_logo || ''; 
             document.getElementById('set-favicon').value = r.settings.site_favicon || ''; 
             document.getElementById('set-wa').value = r.settings.wa_admin || '';
+            document.getElementById('set-duitku-code').value = r.settings.duitku_merchant_code || '';
+            document.getElementById('set-duitku-key').value = r.settings.duitku_merchant_key || '';
+            document.getElementById('set-duitku-sandbox').checked = (String(r.settings.duitku_sandbox_mode) === 'true'); 
             document.getElementById('set-email').value = r.settings.contact_email || ''; 
- 
             document.getElementById('set-fonnte').value = r.settings.fonnte_token || ''; 
             document.getElementById('set-ik-pub').value = IK_PUB = r.settings.ik_public_key || ''; 
             document.getElementById('set-ik-end').value = IK_END = r.settings.ik_endpoint || ''; 
@@ -1077,17 +1097,6 @@
 
                 const r = await res.json(); 
                 if(r.status === 'success') { 
-                    if (r.settings && r.settings.script_url !== SCRIPT_URL) {
-                        console.log("Syncing SCRIPT_URL to server...");
-                        fetch(SCRIPT_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                action: 'update_settings',
-                                payload: { script_url: SCRIPT_URL }
-                            })
-                        }).catch(e => console.error("Auto-sync failed", e));
-                    }
-
                     const freshDataStr = JSON.stringify(r);
                     if(cachedDataStr !== freshDataStr) {
                         localStorage.setItem(CACHE_KEY_ADMIN, freshDataStr); 
@@ -1545,7 +1554,9 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                 fonnte_token: document.getElementById('set-fonnte').value, 
                 ik_public_key: document.getElementById('set-ik-pub').value, 
                 ik_endpoint: document.getElementById('set-ik-end').value,
-
+                duitku_merchant_code: document.getElementById('set-duitku-code').value,
+                duitku_merchant_key: document.getElementById('set-duitku-key').value,
+                duitku_sandbox_mode: document.getElementById('set-duitku-sandbox').checked.toString()
             }; 
             await submitFormToGAS('form-sys', { action: 'update_settings', payload: p }, 'API Sistem Updated!');
             // Clear local cache agar perubahan langsung terlihat di halaman depan

@@ -5,7 +5,7 @@
 
     <script>
         (function() {
-            const CACHE_KEY = 'melimpah_global_settings';
+            const CACHE_KEY = 'cepat_global_settings';
             const CACHE_AGE = 60 * 60 * 1000; 
             window.waAdminGlobal = '';
 
@@ -555,7 +555,7 @@
             }, 3000);
         }
 
-        const DASHBOARD_CACHE_KEY = 'melimpah_dashboard_data';
+        const DASHBOARD_CACHE_KEY = 'cepat_dashboard_data';
 
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
@@ -574,8 +574,16 @@
         if (!userEmail) { window.location.href = 'login.html'; }
         
         // Dynamic Greeting & Avatar Logic
-        if (userNama) { 
-            const firstName = userNama.split(' ')[0];
+        // Fallback name logic: Nama -> Email -> 'Member'
+        let displayName = userNama;
+        // Robust check for invalid values (null, undefined, empty, or just spaces)
+        if (!displayName || displayName === 'null' || displayName === 'undefined' || displayName.trim() === '') {
+            displayName = userEmail ? userEmail.split('@')[0] : 'Member';
+        }
+
+        if (displayName) { 
+            // Ensure no leading/trailing spaces
+            displayName = displayName.trim();
             
             // Time-based Greeting
             const hour = new Date().getHours();
@@ -589,14 +597,16 @@
             if (headerNameEl) {
                 // Find parent p tag to update full text
                 const parentP = headerNameEl.parentElement;
-                parentP.innerHTML = `${greeting}, <span id="header-name" class="text-indigo-600 font-bold">${firstName}</span>!`;
+                // Use full displayName as requested (Nama Lengkap)
+                parentP.innerHTML = `${greeting}, <span id="header-name" class="text-indigo-600 font-bold capitalize">${displayName}</span>!`;
             }
 
             // Update Dynamic Avatar
             const avatarImg = document.getElementById('header-avatar');
             const avatarIcon = document.getElementById('header-avatar-icon');
             if(avatarImg && avatarIcon) {
-                avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNama)}&background=4f46e5&color=fff&size=128&bold=true`;
+                // Use displayName instead of raw userNama to ensure fallback works
+                avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=4f46e5&color=fff&size=128&bold=true`;
                 avatarImg.onload = function() {
                     avatarImg.classList.remove('hidden');
                     avatarIcon.classList.add('hidden');
@@ -719,15 +729,13 @@
                     document.getElementById('bio-wa').value = d.wa || '';
                     document.getElementById('bio-email').value = d.email || '';
                     
-                    if (d.socials_json) {
-                        try {
-                            const socials = JSON.parse(d.socials_json);
-                            document.getElementById('bio-fb').value = socials.fb || '';
-                            document.getElementById('bio-ig').value = socials.ig || '';
-                            document.getElementById('bio-twitter').value = socials.twitter || '';
-                            document.getElementById('bio-youtube').value = socials.youtube || '';
-                            document.getElementById('bio-tiktok').value = socials.tiktok || '';
-                        } catch(e) {}
+                    // Backend returns 'socials' as an object (already parsed), not 'socials_json'
+                    if (d.socials && typeof d.socials === 'object') {
+                        document.getElementById('bio-fb').value = d.socials.fb || '';
+                        document.getElementById('bio-ig').value = d.socials.ig || '';
+                        document.getElementById('bio-twitter').value = d.socials.twitter || '';
+                        document.getElementById('bio-youtube').value = d.socials.youtube || '';
+                        document.getElementById('bio-tiktok').value = d.socials.tiktok || '';
                     }
                     bioLinkLoaded = true;
                 }
@@ -825,6 +833,10 @@
 
             if (newPassword !== confirmPassword) {
                 showToast("Konfirmasi password tidak cocok!", "error");
+                return;
+            }
+            if (newPassword.length < 6) {
+                showToast("Password baru minimal 6 karakter!", "error");
                 return;
             }
 
@@ -940,6 +952,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
         }
 
         function renderDashboardUI(r) {
+
             if (r.pages) window.cachedPages = r.pages;
             if (r.affiliate_pixels) window.currentAffiliatePixels = r.affiliate_pixels;
             
@@ -1194,7 +1207,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
                         if(r.data.settings) {
                             applyGlobalSettings(r.data.settings);
                             // Update juga cache global settings terpisah agar login page juga dapet update
-                            localStorage.setItem('melimpah_global_settings', JSON.stringify({ data: r.data.settings, time: Date.now() }));
+                            localStorage.setItem('cepat_global_settings', JSON.stringify({ data: r.data.settings, time: Date.now() }));
                         }
                         renderDashboardUI(combinedData);
                     }

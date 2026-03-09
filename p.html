@@ -5,7 +5,7 @@
 
     <script>
         (function() {
-            const CACHE_KEY = 'melimpah_global_settings';
+            const CACHE_KEY = 'cepat_global_settings';
             const CACHE_AGE = 60 * 60 * 1000; 
 
             function applyGlobalSettings(data) {
@@ -20,8 +20,8 @@
                 if(data.site_name) {
                     // Simpan nama brand ke window object agar bisa dipakai saat merender konten CMS
                     window.brandNameGlobal = data.site_name; 
-                    if(document.title.includes('Melimpah')) {
-                        document.title = document.title.replace(/Melimpah/gi, data.site_name);
+                    if(document.title.includes('Cepat')) {
+                        document.title = document.title.replace(/Cepat/gi, data.site_name);
                     }
                 }
             }
@@ -50,7 +50,7 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memuat Halaman... - Melimpah</title>
+    <title>Memuat Halaman... - Cepat</title>
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -81,7 +81,7 @@
         // Capture Affiliate Ref
         const ref = urlParams.get('ref') || urlParams.get('aff_id');
         if(ref) {
-            localStorage.setItem('melimpah_affiliate', ref);
+            localStorage.setItem('cepat_affiliate', ref);
         }
 
         function injectMetaPixel(pixelId) {
@@ -167,7 +167,7 @@
                 return; 
             }
             
-            const cacheKey = 'melimpah_page_' + slug;
+            const cacheKey = 'cepat_page_' + slug;
             const cachedData = localStorage.getItem(cacheKey);
             
             // JIKA ADA CACHE: Tampilkan landing page seketika (0 detik)

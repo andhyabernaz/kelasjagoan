@@ -2,26 +2,22 @@
 <html lang="id">
 <head>
     <script src="config.js?v=2026_1"></script>
+    <link rel="preconnect" href="https://script.google.com" crossorigin>
+    <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 
     <script>
-        (async function() {
-            const CACHE_KEY = 'melimpah_global_settings';
+        (function() {
+            const CACHE_KEY = 'cepat_global_settings';
             const CACHE_AGE = 60 * 60 * 1000; 
-            
-            let cachedFav = localStorage.getItem('site_favicon');
-            
-            function applyFavicon(url) {
-                if(!url) return;
-                let link = document.querySelector("link[rel~='icon']");
-                if (!link) {
-                    link = document.createElement('link');
-                    link.rel = 'icon';
-                    document.head.appendChild(link);
-                }
-                link.href = url;
-            }
 
-            function applyWhiteLabel(data) {
+            function applyGlobalSettings(data) {
+                // Eksekusi Cepat Favicon
+                if(data.site_favicon) {
+                    let link = document.querySelector("link[rel~='icon']");
+                    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+                    link.href = data.site_favicon;
+                }
+                
                 // Auto Replace Text di Title Browser
                 if(data.site_name) {
                     document.title = `Login Member - ${data.site_name}`;
@@ -55,39 +51,25 @@
                 }
             }
 
-            // 1. Langsung pasang favicon dari memori HP/Laptop biar nggak kedip
-            if(cachedFav) applyFavicon(cachedFav);
-
             const cachedStr = localStorage.getItem(CACHE_KEY);
             let cached = null;
             try { cached = JSON.parse(cachedStr); } catch(e){}
             const now = Date.now();
 
-            if (cached && cached.data) { 
-                applyWhiteLabel(cached.data); 
+            if (cached && cached.data) {
+                applyGlobalSettings(cached.data);
             }
 
-            // 2. Tarik data Global (Favicon, Komisi, dll) dari Spreadsheet
             if (!cached || !cached.time || (now - cached.time > CACHE_AGE)) {
-                try {
-                    if(typeof SCRIPT_URL === 'undefined') { console.error("SCRIPT_URL belum didefinisikan di config.js!"); return; }
-                    
-                    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_global_settings' }) });
-                    const r = await res.json();
-                    
-                    if(r.status === 'success' && r.data) {
-                        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: r.data, time: now }));
-                        applyWhiteLabel(r.data);
-                        
-                        // UPDATE FAVICON JIKA ADA PERUBAHAN
-                        if(r.data.site_favicon && cachedFav !== r.data.site_favicon) {
-                            localStorage.setItem('site_favicon', r.data.site_favicon); 
-                            applyFavicon(r.data.site_favicon); 
+                if(typeof SCRIPT_URL === 'undefined') return;
+                fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_global_settings' }) })
+                    .then(res => res.json())
+                    .then(r => {
+                        if(r.status === 'success') {
+                            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: r.data, time: now }));
+                            applyGlobalSettings(r.data); 
                         }
-                    }
-                } catch(e) {
-                    console.error("Gagal memuat Global Settings", e);
-                }
+                    }).catch(e => console.error("Global Settings Sync Failed", e));
             }
         })();
     </script>
@@ -248,13 +230,38 @@
                 if(r.status === 'success') {
                     sessionStorage.setItem('user_email', r.data.email);
                     sessionStorage.setItem('user_nama', r.data.nama);
-                    sessionStorage.setItem('user_id', r.data.id); 
-                    
+                    sessionStorage.setItem('user_id', r.data.id);
+
                     showToast("Login Berhasil! Mengalihkan...", "success");
-                    
-                    setTimeout(() => {
+
+                    // Prefetch dashboard data saat user melihat toast
+                    const prefetch = fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'get_dashboard_data', email: r.data.email })
+                    })
+                    .then(pRes => pRes.json())
+                    .then(d => {
+                        if (d.status === 'success' && d.data) {
+                            const combined = {
+                                ...d.data.products,
+                                pages: d.data.pages,
+                                settings: d.data.settings,
+                                user: d.data.user,
+                                affiliate_pixels: d.data.affiliate_pixels
+                            };
+                            localStorage.setItem('cepat_dashboard_data_' + r.data.email, JSON.stringify(combined));
+                            if (d.data.settings) {
+                                localStorage.setItem('cepat_global_settings', JSON.stringify({ data: d.data.settings, time: Date.now() }));
+                            }
+                        }
+                    })
+                    .catch(() => {});
+
+                    // Redirect setelah prefetch selesai ATAU minimal 800ms (toast terlihat)
+                    const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+                    Promise.all([prefetch, minDelay]).then(() => {
                         window.location.href = 'dashboard.html';
-                    }, 1000);
+                    });
                 } else { 
                     showToast(r.message, "error"); 
                     btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons({ root: btn });
