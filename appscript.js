@@ -77,6 +77,93 @@ function toISODate_() {
 }
 
 /* =========================
+   TRANSACTION LOGGING
+========================= */
+/**
+ * Menulis log transaksi ke sheet System_Logs.
+ * Dibuat lazy (sheet dibuat jika belum ada).
+ * @param {string} action - Nama aksi (e.g. "create_order", "moota_webhook")
+ * @param {string} status - "success" | "error" | "info"
+ * @param {Object} meta  - Data tambahan (invoice, email, amount, dll)
+ */
+function log_(action, status, meta) {
+  try {
+    let logSheet = ss.getSheetByName("System_Logs");
+    if (!logSheet) {
+      logSheet = ss.insertSheet("System_Logs");
+      logSheet.appendRow(["Timestamp", "Action", "Status", "Details"]);
+      logSheet.setFrozenRows(1);
+    }
+    const detail = (typeof meta === "object") ? JSON.stringify(meta) : String(meta || "");
+    logSheet.appendRow([new Date(), action, status, detail]);
+  } catch (e) {
+    // Jangan lempar error dari logger — logging failure tidak boleh break aplikasi utama
+    console.error("Logger Error: " + e.toString());
+  }
+}
+
+/* =========================
+   EXTERNAL API WITH RETRY (EXPONENTIAL BACKOFF)
+========================= */
+/**
+ * Wrapper UrlFetchApp.fetch dengan retry + exponential backoff.
+ * @param {string} url
+ * @param {Object} options - UrlFetchApp options
+ * @param {number} maxRetries - Jumlah maksimum retry (default 3)
+ * @returns {HTTPResponse}
+ */
+function fetchWithRetry_(url, options, maxRetries) {
+  maxRetries = maxRetries || 3;
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = UrlFetchApp.fetch(url, options);
+      const code = res.getResponseCode();
+      // Retry pada rate limit (429) atau server error (5xx)
+      if (code === 429 || code >= 500) {
+        throw new Error("HTTP " + code);
+      }
+      return res;
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s
+        Utilities.sleep(Math.pow(2, attempt) * 1000);
+      }
+    }
+  }
+  throw lastError;
+}
+
+/* =========================
+   INPUT VALIDATION & SANITIZATION
+========================= */
+/**
+ * Validasi format email menggunakan regex standar.
+ */
+function isValidEmail_(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ""));
+}
+
+/**
+ * Menghapus semua HTML tags untuk mencegah XSS injection ke spreadsheet.
+ */
+function stripTags_(input) {
+  return String(input || "").replace(/<[^>]*>/g, "").trim();
+}
+
+/**
+ * Memastikan slug hanya berisi huruf kecil, angka, dan hyphen.
+ */
+function sanitizeSlug_(slug) {
+  return String(slug || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/* =========================
    LEGACY getCfg (kept)
    (masih bisa dipakai, tapi lebih lambat)
 ========================= */
@@ -469,14 +556,15 @@ function sendWA(target, message, cfg) {
   const token = getCfgFrom_(cfg, "fonnte_token") || getCfg("fonnte_token");
   if (!token) return;
   try {
-    UrlFetchApp.fetch("https://api.fonnte.com/send", {
+    fetchWithRetry_("https://api.fonnte.com/send", {
       method: "post",
       headers: { "Authorization": token },
       payload: { target: target, message: message },
       muteHttpExceptions: true
     });
   } catch (e) {
-    Logger.log(e);
+    Logger.log("sendWA Error: " + e.toString());
+    log_("send_wa", "error", { target: target, error: e.toString() });
   }
 }
 
@@ -505,6 +593,11 @@ function createOrder(d, cfg) {
     const inv = "INV-" + Date.now().toString(36).toUpperCase().slice(-5) + Math.floor(1000 + Math.random() * 9000);
     const email = String(d.email || "").trim().toLowerCase();
     if (!email) return { status: "error", message: "Email wajib diisi" };
+    if (!isValidEmail_(email)) return { status: "error", message: "Format email tidak valid" };
+
+    // Sanitasi nama untuk mencegah XSS injection ke spreadsheet
+    const namaSanitized = stripTags_(d.nama) || "Pelanggan";
+    const produkNameSanitized = stripTags_(d.nama_produk);
 
     const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
     const siteUrl = String(getCfgFrom_(cfg, "site_url") || "").trim();
@@ -575,16 +668,26 @@ function createOrder(d, cfg) {
     oS.appendRow([
       inv,
       email,
-      d.nama,
+      namaSanitized,
       d.whatsapp,
       d.id_produk,
-      d.nama_produk,
+      produkNameSanitized,
       hargaTotalUnik,
       orderStatus,
       toISODate_(),
       aff,
       komisiNominal
     ]);
+
+    // LOG TRANSAKSI ke System_Logs
+    log_("create_order", "success", {
+      invoice: inv,
+      email: email,
+      produk: produkNameSanitized,
+      harga: hargaTotalUnik,
+      status: orderStatus,
+      affiliate: aff
+    });
 
     // ==========================================
     // NOTIFIKASI (LOGIC CABANG: GRATIS vs BAYAR)
@@ -604,7 +707,7 @@ function createOrder(d, cfg) {
        }
        
        // 2. WA ke User
-       const waText = `Halo ${d.nama}, selamat datang di ${siteName}! 🎉\n\nSukses! Akses Anda untuk produk *${d.nama_produk}* telah aktif (GRATIS).\n\n🚀 *Klik link berikut untuk akses materi:*\n${accessUrl}\n\n🔐 *AKUN MEMBER AREA*\n🌐 Link: ${loginUrl}\n✉️ Email: ${email}\n🔑 Password: ${pass}\n\nTerima kasih!\n*Tim ${siteName}*`;
+       const waText = `Halo ${namaSanitized}, selamat datang di ${siteName}! 🎉\n\nSukses! Akses Anda untuk produk *${produkNameSanitized}* telah aktif (GRATIS).\n\n🚀 *Klik link berikut untuk akses materi:*\n${accessUrl}\n\n🔐 *AKUN MEMBER AREA*\n🌐 Link: ${loginUrl}\n✉️ Email: ${email}\n🔑 Password: ${pass}\n\nTerima kasih!\n*Tim ${siteName}*`;
        sendWA(d.whatsapp, waText, cfg);
 
        // 3. Email ke User
@@ -625,10 +728,10 @@ function createOrder(d, cfg) {
           
           <p>Salam hangat,<br><b>Tim ${siteName}</b></p>
        </div>`;
-       sendEmail(email, `Akses Gratis! Produk ${d.nama_produk}`, emailHtml, cfg);
+       sendEmail(email, `Akses Gratis! Produk ${produkNameSanitized}`, emailHtml, cfg);
 
        // 4. Notif Admin
-       sendWA(adminWA, `🎁 *ORDER GRATIS BARU!* 🎁\n\n📌 *Invoice:* #${inv}\n📦 *Produk:* ${d.nama_produk}\n👤 *User:* ${d.nama}\n\nStatus: Lunas (Auto)`, cfg);
+       sendWA(adminWA, `🎁 *ORDER GRATIS BARU!* 🎁\n\n📌 *Invoice:* #${inv}\n📦 *Produk:* ${produkNameSanitized}\n👤 *User:* ${namaSanitized}\n\nStatus: Lunas (Auto)`, cfg);
 
     } else {
        // --- SKENARIO BERBAYAR (PENDING) ---
@@ -1247,7 +1350,7 @@ function savePage(d) {
     const s = mustSheet_("Pages");
     const isEdit = String(d.is_edit) === "true";
     const ownerId = String(d.owner_id || "ADMIN").trim(); // Default ke ADMIN
-    const slug = String(d.slug).trim();
+    const slug = sanitizeSlug_(String(d.slug).trim());
     const id = String(d.id).trim();
 
     const r = s.getDataRange().getValues();

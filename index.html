@@ -2,11 +2,20 @@
 <html lang="id">
 <head>
     <script src="config.js?v=2026_1"></script>
+    <!-- == RESOURCE HINTS: Preconnect ke domain kritis untuk kurangi DNS latency == -->
+    <link rel="preconnect" href="https://script.google.com" crossorigin>
+    <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <!-- Preload font kritis (LCP resource) -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/plusjakartasans/v8/LDIbaomQNQcsA88c7O9yZ4KMCoOg4Ko70b-M.woff2" as="font" type="font/woff2" crossorigin>
 
     <script>
         (function() {
             const CACHE_KEY = 'cepat_global_settings';
-            const CACHE_AGE = 60 * 60 * 1000; 
+            const CACHE_AGE = 2 * 60 * 60 * 1000; // 2 jam (naik dari 1 jam)
             window.waAdminGlobal = '';
 
             function applyGlobalSettings(data) {
@@ -126,12 +135,11 @@
                 }).catch(e => console.error("Global Settings Sync Failed", e));
         })();
     </script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cepat Digital Teknologi</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -210,6 +218,35 @@
         // CACHE_KEY katalog tetap di sini
         const CACHE_KEY_CATALOG = 'cepat_public_catalog';
 
+        // ===================================================
+        // CLIENT-SIDE FETCH WITH EXPONENTIAL BACKOFF RETRY
+        // ===================================================
+        /**
+         * Fetch dengan retry otomatis jika gagal (error network / 5xx).
+         * @param {string} url
+         * @param {Object} opts - Fetch options
+         * @param {number} maxRetries - Maks percobaan ulang (default: 3)
+         */
+        async function fetchWithRetry(url, opts, maxRetries = 3) {
+            let lastError;
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    const res = await fetch(url, opts);
+                    // Retry pada server error (5xx) tapi bukan 4xx
+                    if (res.status >= 500) throw new Error('Server Error ' + res.status);
+                    return res;
+                } catch (e) {
+                    lastError = e;
+                    if (attempt < maxRetries) {
+                        const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+                        console.warn(`Fetch attempt ${attempt + 1} failed. Retrying in ${delay}ms...`, e.message);
+                        await new Promise(r => setTimeout(r, delay));
+                    }
+                }
+            }
+            throw lastError;
+        }
+
         // Fungsi Render HTML Produk
         function renderCatalog(products) {
             const container = document.getElementById('public-products');
@@ -282,9 +319,9 @@
 
             // Pengecekan data terbaru di belakang layar
             try {
-                if(typeof SCRIPT_URL === 'undefined') return; // Cek SCRIPT_URL dari config.js
+                if(typeof SCRIPT_URL === 'undefined') return;
                 
-                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_products', email: '' }) });
+                const res = await fetchWithRetry(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'get_products', email: '' }) });
                 const r = await res.json();
                 
                 if (r.status === 'success') {
