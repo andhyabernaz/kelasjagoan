@@ -228,9 +228,11 @@
                 const r = await res.json();
                 
                 if(r.status === 'success') {
+                    // Simpan data user dan session token ke sessionStorage
                     sessionStorage.setItem('user_email', r.data.email);
                     sessionStorage.setItem('user_nama', r.data.nama);
                     sessionStorage.setItem('user_id', r.data.id);
+                    sessionStorage.setItem('session_token', r.session_token || '');
 
                     showToast("Login Berhasil! Mengalihkan...", "success");
 

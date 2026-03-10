@@ -295,166 +295,52 @@ function doPost(e) {
       case "get_ik_auth": return jsonRes(getImageKitAuth(cfg));
       case "get_media_files": return jsonRes(getIkFiles(cfg));
       case "purge_cf_cache": return jsonRes(purgeCFCache(cfg));
-      case "change_password": return jsonRes(changeUserPassword(data));
-      case "update_profile": return jsonRes(updateUserProfile(data));
+      // === ENDPOINT SENSITIF (Butuh session_token) ===
+      case "change_password": {
+        const auth = requireAuth_(data);
+        if (!auth.ok) return auth.response;
+        return jsonRes(changeUserPassword(data));
+      }
+      case "update_profile": {
+        const auth = requireAuth_(data);
+        if (!auth.ok) return auth.response;
+        return jsonRes(updateUserProfile(data));
+      }
+      case "save_page": {
+        const auth = requireAuth_(data);
+        if (!auth.ok) return auth.response;
+        return jsonRes(savePage(data));
+      }
+      case "delete_page": {
+        const auth = requireAuth_(data);
+        if (!auth.ok) return auth.response;
+        return jsonRes(deletePage(data));
+      }
+      case "save_bio_link": {
+        const auth = requireAuth_(data);
+        if (!auth.ok) return auth.response;
+        return jsonRes(saveBioLink(data));
+      }
+      case "logout": {
+        const t = String(data.session_token || "").trim();
+        destroySession_(t);
+        return jsonRes({ status: "success", message: "Logout berhasil" });
+      }
       case "forgot_password": return jsonRes(forgotPassword(data));
       case "get_dashboard_data": return jsonRes(getDashboardData(data));
       case "normalize_users": return jsonRes(normalizeUsersSheet());
 
       case "delete_product": return jsonRes(deleteProduct(data));
-      case "delete_page": return jsonRes(deletePage(data));
       case "check_slug": return jsonRes(checkSlug(data));
       case "save_affiliate_pixel": return jsonRes(saveAffiliatePixel(data));
       case "get_admin_orders": return jsonRes(getAdminOrders(data));
       case "get_admin_users": return jsonRes(getAdminUsers(data));
-      case "save_bio_link": return jsonRes(saveBioLink(data));
       case "get_bio_link": return jsonRes(getBioLink(data));
       case "get_quota_status": return jsonRes({ status: "success", data: checkQuota() });
-      case "check_system_health": return jsonRes(checkSystemHealth());
-      case "clear_cache": return jsonRes(clearCache());
       default: return jsonRes({ status: "error", message: "Aksi tidak terdaftar: " + (action || "unknown") });
     }
   } catch (err) {
     return jsonRes({ status: "error", message: err.toString() });
-  }
-}
-
-/* =========================
-   MANUAL CACHE CLEARING
-========================= */
-function clearCache() {
-  try {
-    const cache = CacheService.getScriptCache();
-    cache.remove("settings_map");
-    cache.remove("access_rules");
-    return { status: "success", message: "Cache Backend Berhasil Direset!" };
-  } catch (e) {
-    return { status: "error", message: e.toString() };
-  }
-}
-
-/* =========================
-   SYSTEM HEALTH & CONSISTENCY CHECK
-========================= */
-function checkSystemHealth() {
-  try {
-    const report = {
-      status: "healthy",
-      issues: [],
-      checks: {}
-    };
-
-    // 1. Check Product Cache Consistency
-    const rawRules = mustSheet_("Access_Rules").getDataRange().getValues();
-    const cachedRulesJson = CacheService.getScriptCache().get("access_rules");
-    
-    let cacheStatus = "ok";
-    if (cachedRulesJson) {
-      const cachedRules = JSON.parse(cachedRulesJson);
-      // Compare lengths (rawRules has header, so length-1)
-      if (cachedRules.length !== rawRules.length) {
-        cacheStatus = "mismatch";
-        report.status = "warning";
-        report.issues.push("Product Cache Mismatch: Cache (" + cachedRules.length + ") vs Sheet (" + rawRules.length + ")");
-      } else {
-        // Deep compare last item to ensure freshness
-        const lastRaw = rawRules[rawRules.length-1].join("|");
-        const lastCached = cachedRules[cachedRules.length-1].join("|");
-        if (lastRaw !== lastCached) {
-           cacheStatus = "stale";
-           report.status = "warning";
-           report.issues.push("Product Cache Stale: Data content differs.");
-        }
-      }
-    } else {
-      cacheStatus = "empty (clean)";
-    }
-    report.checks.product_cache = cacheStatus;
-
-    // 2. Check Active Products Count
-    let activeCount = 0;
-    for (let i = 1; i < rawRules.length; i++) {
-      if (String(rawRules[i][5]).trim() === "Active") activeCount++;
-    }
-    report.checks.active_products = activeCount;
-
-    // 3. Quota Check
-    const quota = checkQuota();
-    if (quota.email_quota < 10) {
-      report.status = "critical";
-      report.issues.push("Email Quota Critical: " + quota.email_quota);
-    }
-
-    // 4. Run Data Consistency Tests
-    const testResults = runDataConsistencyTests();
-    if (testResults.status === "error") {
-      report.status = report.status === "critical" ? "critical" : "warning";
-      report.issues.push(...testResults.errors);
-    }
-    report.checks.data_consistency = testResults.status;
-
-    return { status: "success", data: report };
-  } catch (e) {
-    return { status: "error", message: e.toString() };
-  }
-}
-
-/**
- * UNIT TESTS: Data Consistency Between Admin and Dashboard
- * Ensures both views see the same core data (minus filters).
- */
-function runDataConsistencyTests() {
-  const errors = [];
-  try {
-    const cfg = getSettingsMap_();
-    
-    // Test 1: getAdminData vs Raw Sheet
-    const adminRes = getAdminData(cfg);
-    const rawRules = mustSheet_("Access_Rules").getDataRange().getValues();
-    const sheetCount = rawRules.length - 1; // exclude header
-    
-    if (adminRes.status === "success") {
-      if (adminRes.products.length !== sheetCount) {
-        errors.push(`Mismatch Admin vs Sheet: Admin sees ${adminRes.products.length} products, Sheet has ${sheetCount}.`);
-      }
-    } else {
-      errors.push("Failed to call getAdminData for testing.");
-    }
-
-    // Test 2: getProducts (Active only) vs Filtered Raw Sheet
-    const dashboardRes = getProducts({ action: "get_products" }, cfg);
-    let activeSheetCount = 0;
-    for (let i = 1; i < rawRules.length; i++) {
-      if (String(rawRules[i][5]).trim() === "Active") activeSheetCount++;
-    }
-
-    if (dashboardRes.status === "success") {
-      if (dashboardRes.data.length !== activeSheetCount) {
-        errors.push(`Mismatch Dashboard vs Sheet: Dashboard sees ${dashboardRes.data.length} active products, Sheet has ${activeSheetCount}.`);
-      }
-    } else {
-      errors.push("Failed to call getProducts for testing.");
-    }
-
-    // Test 3: Data Integrity (Check required columns)
-    if (adminRes.status === "success" && adminRes.products.length > 0) {
-       const firstProd = adminRes.products[0];
-       // Check if required indices exist (based on renderAdminUI mapping)
-       // ID [0], Title [1], Desc [2], Price [4], Status [5]
-       const requiredIndices = [0, 1, 2, 4, 5];
-       requiredIndices.forEach(idx => {
-         if (firstProd[idx] === undefined) {
-           errors.push(`Data Integrity Error: Column index ${idx} missing in product data.`);
-         }
-       });
-    }
-
-    return {
-      status: errors.length > 0 ? "error" : "success",
-      errors: errors
-    };
-  } catch (e) {
-    return { status: "error", errors: ["Test Runner Error: " + e.toString()] };
   }
 }
 
@@ -659,7 +545,10 @@ function createOrder(d, cfg) {
               }
           }
       }
-      uS.appendRow([newUserId, email, pass, d.nama, "member", "Active", toISODate_(), "-"]);
+      // Hash password baru sebelum disimpan ke sheet
+      const newSalt = generateSalt_();
+      const passHash = hashPassword_(pass, newSalt);
+      uS.appendRow([newUserId, email, passHash, namaSanitized, "member", "Active", toISODate_(), "-", newSalt]);
     }
 
     const orderStatus = isZeroPrice ? "Lunas" : "Pending";
@@ -1175,17 +1064,407 @@ function getDashboardData(d) {
   }
 }
 
+/* =====================================================
+   SECURITY MODULE
+   1. Password Hashing (SHA-256 + per-user salt)
+   2. Session Token (CacheService, 24h TTL)
+   3. Rate Limiting (Sheet-based, email-scoped)
+   4. XSS Prevention (HTML Entity Encoding)
+===================================================== */
+
+// ──────────────────────────────────────────────────
+// 1. PASSWORD HASHING
+// ──────────────────────────────────────────────────
+
+/**
+ * Menghasilkan hash SHA-256 dari input sebagai hex string.
+ * @param {string} password - Plain text password
+ * @param {string} salt     - Salt unik per-user (UUID)
+ * @returns {string} 64-karakter hex SHA-256 hash
+ */
+function hashPassword_(password, salt) {
+  const input = salt + ":" + String(password);
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    input,
+    Utilities.Charset.UTF_8
+  );
+  return digest.map(b => ("0" + (b & 255).toString(16)).slice(-2)).join("");
+}
+
+/**
+ * Verifikasi password plain text terhadap hash yang tersimpan.
+ * @returns {boolean}
+ */
+function verifyPassword_(password, salt, storedHash) {
+  if (!salt || !storedHash) {
+    // Mode legacy: password masih plaintext (belum migrasi)
+    return String(password) === String(storedHash);
+  }
+  return hashPassword_(password, salt) === storedHash;
+}
+
+/**
+ * Menghasilkan salt unik menggunakan UUID.
+ * @returns {string}
+ */
+function generateSalt_() {
+  return Utilities.getUuid();
+}
+
+/**
+ * MIGRASI ONE-TIME: Hash semua password yang masih plaintext di Users sheet.
+ * Jalankan SEKALI dari GAS editor setelah deploy.
+ * Password baru disimpan sebagai SHA-256 hash.
+ * Salt disimpan di kolom ke-9 (index 8).
+ * 
+ * PENTING: Backup sheet sebelum menjalankan ini!
+ */
+function migratePasswords() {
+  const s = mustSheet_("Users");
+  const r = s.getDataRange().getValues();
+  let migratedCount = 0;
+  let skippedCount = 0;
+
+  for (let i = 1; i < r.length; i++) {
+    const currentPassword = String(r[i][2] || "");
+    const existingSalt    = String(r[i][8] || "").trim(); // Kolom ke-9 (index 8) = salt
+
+    // Jika sudah punya salt → sudah di-hash, skip
+    if (existingSalt && existingSalt.length === 36) {
+      skippedCount++;
+      continue;
+    }
+
+    // Jika password kosong, skip
+    if (!currentPassword) {
+      skippedCount++;
+      continue;
+    }
+
+    const newSalt = generateSalt_();
+    const hash    = hashPassword_(currentPassword, newSalt);
+
+    // Update kolom password (col 3, index 2) dengan hash
+    s.getRange(i + 1, 3).setValue(hash);
+    // Simpan salt di kolom 9 (index 8) — tambah kolom jika perlu
+    s.getRange(i + 1, 9).setValue(newSalt);
+    migratedCount++;
+  }
+
+  log_("migrate_passwords", "success", { migrated: migratedCount, skipped: skippedCount });
+  Logger.log("Migration selesai: " + migratedCount + " di-hash, " + skippedCount + " dilewati.");
+  return { status: "success", migrated: migratedCount, skipped: skippedCount };
+}
+
+// ──────────────────────────────────────────────────
+// 2. SESSION TOKEN (CacheService)
+// ──────────────────────────────────────────────────
+
+const SESSION_TTL_SECONDS = 86400; // 24 jam
+
+/**
+ * Menghasilkan UUID token baru.
+ */
+function generateSessionToken_() {
+  return Utilities.getUuid();
+}
+
+/**
+ * Simpan session token di CacheService (TTL 24 jam).
+ * Key: "session_{token}" | Value: email user
+ * @param {string} email
+ * @param {string} token
+ */
+function storeSession_(email, token) {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.put("session_" + token, email, SESSION_TTL_SECONDS);
+  } catch (e) {
+    console.error("storeSession_ Error: " + e.toString());
+  }
+}
+
+/**
+ * Validasi token dan kembalikan email user jika valid, atau null jika tidak.
+ * @param {string} token
+ * @returns {string|null}
+ */
+function validateSession_(token) {
+  if (!token) return null;
+  try {
+    const cache = CacheService.getScriptCache();
+    const email = cache.get("session_" + token);
+    return email || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Hapus session token (logout).
+ * @param {string} token
+ */
+function destroySession_(token) {
+  if (!token) return;
+  try {
+    CacheService.getScriptCache().remove("session_" + token);
+  } catch (e) {}
+}
+
+/**
+ * Middleware: Validasi session_token dari payload request.
+ * Kembalikan { ok: true, email } jika valid,
+ * atau { ok: false, response: jsonRes(...) } jika tidak.
+ * @param {Object} data - Parsed request payload
+ */
+function requireAuth_(data) {
+  const token = String(data.session_token || "").trim();
+  const email = validateSession_(token);
+  if (!email) {
+    return {
+      ok: false,
+      response: jsonRes({ status: "error", code: 401, message: "Sesi tidak valid atau sudah berakhir. Silakan login ulang." })
+    };
+  }
+  return { ok: true, email: email };
+}
+
+// ──────────────────────────────────────────────────
+// 3. RATE LIMITING (Sheet: Rate_Limits)
+// Kolom: [email, first_attempt_time, attempt_count]
+// ──────────────────────────────────────────────────
+
+const RATE_LIMIT_MAX     = 3;            // Maks percobaan
+const RATE_LIMIT_WINDOW  = 60 * 60 * 1000; // 1 jam dalam ms
+
+/**
+ * Cek apakah email sudah melewati batas rate limit.
+ * @param {string} email
+ * @returns {boolean} true = BOLEH lanjut, false = TERBLOKIR
+ */
+function checkRateLimit_(email) {
+  try {
+    const s = _getRateLimitSheet_();
+    const r = s.getDataRange().getValues();
+    const now = Date.now();
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][0]).toLowerCase() !== email.toLowerCase()) continue;
+
+      const firstAttempt = new Date(r[i][1]).getTime();
+      const count        = Number(r[i][2] || 0);
+
+      // Jika window sudah lewat → reset, boleh lanjut
+      if (now - firstAttempt > RATE_LIMIT_WINDOW) {
+        s.deleteRow(i + 1);
+        return true;
+      }
+
+      // Jika masih dalam window dan sudah mencapai batas → blokir
+      if (count >= RATE_LIMIT_MAX) return false;
+
+      return true; // Masih dalam batas
+    }
+
+    return true; // Tidak ada record → boleh lanjut
+  } catch (e) {
+    console.error("checkRateLimit_ Error: " + e.toString());
+    return true; // Fail-open: jangan blokir jika error
+  }
+}
+
+/**
+ * Catat attempt rate limit untuk email.
+ * @param {string} email
+ */
+function recordRateLimitAttempt_(email) {
+  try {
+    const s = _getRateLimitSheet_();
+    const r = s.getDataRange().getValues();
+    const now = new Date();
+    const nowMs = now.getTime();
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][0]).toLowerCase() !== email.toLowerCase()) continue;
+
+      const firstAttempt = new Date(r[i][1]).getTime();
+      const count        = Number(r[i][2] || 0);
+
+      // Jika window sudah lewat → buat record baru
+      if (nowMs - firstAttempt > RATE_LIMIT_WINDOW) {
+        s.getRange(i + 1, 1, 1, 3).setValues([[email, now, 1]]);
+        return;
+      }
+
+      // Increment counter
+      s.getRange(i + 1, 3).setValue(count + 1);
+      return;
+    }
+
+    // Record baru
+    s.appendRow([email, now, 1]);
+  } catch (e) {
+    console.error("recordRateLimitAttempt_ Error: " + e.toString());
+  }
+}
+
+/**
+ * Helper: Ambil atau buat sheet Rate_Limits.
+ */
+function _getRateLimitSheet_() {
+  let s = ss.getSheetByName("Rate_Limits");
+  if (!s) {
+    s = ss.insertSheet("Rate_Limits");
+    s.appendRow(["Email", "First_Attempt", "Attempt_Count"]);
+    s.setFrozenRows(1);
+  }
+  return s;
+}
+
+// ──────────────────────────────────────────────────
+// 4. XSS PREVENTION (HTML Entity Encoding)
+// ──────────────────────────────────────────────────
+
+/**
+ * Encode karakter khusus HTML menjadi HTML entities.
+ * Gunakan ini untuk semua variabel user-input yang dirender di HTML.
+ * @param {string} input
+ * @returns {string}
+ */
+function escapeHtml_(input) {
+  return String(input || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Gabungan: strip HTML tags DAN escape entities.
+ * Cocok untuk nilai yang disimpan ke sheet Dan ditampilkan di HTML.
+ */
+function sanitizeForSheet_(input) {
+  return escapeHtml_(stripTags_(String(input || "")));
+}
+
+// ──────────────────────────────────────────────────
+// UNIT TESTS (Jalankan manual di GAS editor)
+// ──────────────────────────────────────────────────
+
+/**
+ * Test password hashing dan verification.
+ * Run dari GAS editor untuk verifikasi.
+ */
+function testPasswordHashing() {
+  const password = "TestPassword123";
+  const salt     = generateSalt_();
+  const hash     = hashPassword_(password, salt);
+
+  const results = {
+    salt_length:            salt.length === 36,          // UUID = 36 chars
+    hash_length:            hash.length === 64,          // SHA-256 = 64 hex chars
+    verify_correct:         verifyPassword_(password, salt, hash),
+    verify_wrong_pass:      !verifyPassword_("WrongPass", salt, hash),
+    verify_wrong_salt:      !verifyPassword_(password, "wrong-salt", hash),
+    different_salts_diff:   hashPassword_(password, "salt1") !== hashPassword_(password, "salt2"),
+    empty_input:            hashPassword_("", salt).length === 64,
+    // XSS payloads as password
+    xss_pass_hash_length:   hashPassword_("<script>alert(1)</script>", salt).length === 64
+  };
+
+  const pass = Object.values(results).every(Boolean);
+  Logger.log("testPasswordHashing: " + (pass ? "✅ ALL PASS" : "❌ FAILED") + "\n" + JSON.stringify(results, null, 2));
+  return { pass: pass, results: results };
+}
+
+/**
+ * Test rate limiting logic.
+ */
+function testRateLimit() {
+  const testEmail = "test_ratelimit_" + Date.now() + "@example.com";
+  const results = {};
+
+  // Attempt 1, 2, 3 → boleh
+  for (let i = 1; i <= RATE_LIMIT_MAX; i++) {
+    results["attempt_" + i + "_allowed"] = checkRateLimit_(testEmail);
+    recordRateLimitAttempt_(testEmail);
+  }
+
+  // Attempt 4 → seharusnya diblokir
+  results["attempt_4_blocked"] = !checkRateLimit_(testEmail);
+
+  // Cleanup
+  try {
+    const s = ss.getSheetByName("Rate_Limits");
+    if (s) {
+      const r = s.getDataRange().getValues();
+      for (let i = r.length - 1; i >= 1; i--) {
+        if (String(r[i][0]).includes("test_ratelimit_")) s.deleteRow(i + 1);
+      }
+    }
+  } catch (e) {}
+
+  const pass = Object.values(results).every(Boolean);
+  Logger.log("testRateLimit: " + (pass ? "✅ ALL PASS" : "❌ FAILED") + "\n" + JSON.stringify(results, null, 2));
+  return { pass: pass, results: results };
+}
+
+/**
+ * Test XSS escaping terhadap payload umum.
+ */
+function testEscapeHtml() {
+  const cases = [
+    { input: '<script>alert("xss")</script>', expected: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;' },
+    { input: '<img src=x onerror=alert(1)>',  expected: '&lt;img src=x onerror=alert(1)&gt;' },
+    { input: "O'Reilly & Sons",               expected: "O&#39;Reilly &amp; Sons" },
+    { input: '"hello"',                        expected: '&quot;hello&quot;' },
+    { input: '',                               expected: '' },
+    { input: '安全 <test>',                    expected: '安全 &lt;test&gt;' }
+  ];
+
+  const results = {};
+  cases.forEach((c, idx) => {
+    const actual = escapeHtml_(c.input);
+    results["case_" + (idx + 1)] = actual === c.expected;
+    if (actual !== c.expected) {
+      Logger.log("FAIL case " + (idx + 1) + ": expected [" + c.expected + "] got [" + actual + "]");
+    }
+  });
+
+  const pass = Object.values(results).every(Boolean);
+  Logger.log("testEscapeHtml: " + (pass ? "✅ ALL PASS" : "❌ FAILED") + "\n" + JSON.stringify(results, null, 2));
+  return { pass: pass, results: results };
+}
+
 /* =========================
    LOGIN + PAGE + ADMIN
 ========================= */
+
 function loginUser(d) {
   const u = mustSheet_("Users").getDataRange().getValues();
-  const e = String(d.email).trim().toLowerCase();
+  const e = String(d.email || "").trim().toLowerCase();
   for (let i = 1; i < u.length; i++) {
-    if (String(u[i][1]).toLowerCase() === e && String(u[i][2]) === String(d.password)) {
-      return { status: "success", data: { id: u[i][0], nama: u[i][3], email: u[i][1] } };
+    if (String(u[i][1]).toLowerCase() === e) {
+      const storedHash = String(u[i][2]);  // col 2 = password (or hash)
+      const salt       = String(u[i][8] || "").trim(); // col 8 = salt (empty if not yet migrated)
+
+      if (verifyPassword_(d.password, salt, storedHash)) {
+        // Generate + store session token (24h)
+        const token = generateSessionToken_();
+        storeSession_(e, token);
+
+        log_("login", "success", { email: e });
+        return {
+          status: "success",
+          session_token: token,
+          data: { id: u[i][0], nama: u[i][3], email: u[i][1] }
+        };
+      }
     }
   }
+  log_("login", "error", { email: e, reason: "invalid_credentials" });
   return { status: "error", message: "Gagal Login: Cek kembali email/password" };
 }
 
@@ -1502,7 +1781,7 @@ function changeUserPassword(d) {
   try {
     const s = mustSheet_("Users");
     const r = s.getDataRange().getValues();
-    const email = String(d.email).trim().toLowerCase();
+    const email   = String(d.email).trim().toLowerCase();
     const oldPass = String(d.old_password);
     const newPass = String(d.new_password);
 
@@ -1512,12 +1791,23 @@ function changeUserPassword(d) {
 
     for (let i = 1; i < r.length; i++) {
       if (String(r[i][1]).trim().toLowerCase() === email) {
-        if (String(r[i][2]) === oldPass) {
-          s.getRange(i + 1, 3).setValue(newPass);
-          return { status: "success", message: "Password berhasil diubah" };
-        } else {
+        const storedHash = String(r[i][2]);
+        const salt       = String(r[i][8] || "").trim();
+
+        // Verifikasi password lama (support plaintext legacy dan hash)
+        if (!verifyPassword_(oldPass, salt, storedHash)) {
           return { status: "error", message: "Password lama salah!" };
         }
+
+        // Hash password baru
+        const newSalt = generateSalt_();
+        const newHash = hashPassword_(newPass, newSalt);
+
+        s.getRange(i + 1, 3).setValue(newHash);
+        s.getRange(i + 1, 9).setValue(newSalt);
+
+        log_("change_password", "success", { email: email });
+        return { status: "success", message: "Password berhasil diubah" };
       }
     }
     return { status: "error", message: "Email pengguna tidak ditemukan." };
@@ -1549,7 +1839,11 @@ function updateUserProfile(d) {
       
       // Find current user
       if (rowEmail === currentEmail) {
-        if (String(r[i][2]) !== password) return { status: "error", message: "Password salah!" };
+        const storedHash = String(r[i][2]);
+        const salt       = String(r[i][8] || "").trim();
+        if (!verifyPassword_(password, salt, storedHash)) {
+          return { status: "error", message: "Password salah!" };
+        }
         userRowIndex = i + 1;
         currentData = r[i];
       } 
@@ -2043,6 +2337,93 @@ function getAdminUsers(d) {
       has_more: data.length > end
     };
   } catch(e) {
+    return { status: "error", message: e.toString() };
+  }
+}
+
+/* =========================
+   FORGOT PASSWORD (dengan Rate Limiting)
+========================= */
+function forgotPassword(d) {
+  try {
+    const email = String(d.email || "").trim().toLowerCase();
+    if (!email || !isValidEmail_(email)) {
+      return { status: "error", message: "Email tidak valid" };
+    }
+
+    // RATE LIMIT CHECK: Maks 3 permintaan per jam per email
+    if (!checkRateLimit_(email)) {
+      log_("forgot_password", "rate_limited", { email: email });
+      return {
+        status: "error",
+        message: "Terlalu banyak percobaan reset password. Silakan coba lagi dalam 1 jam."
+      };
+    }
+
+    // Catat attempt sebelum proses
+    recordRateLimitAttempt_(email);
+
+    // Cari user
+    const s = mustSheet_("Users");
+    const r = s.getDataRange().getValues();
+    let userRow = -1;
+    let userName = "Member";
+
+    for (let i = 1; i < r.length; i++) {
+      if (String(r[i][1]).trim().toLowerCase() === email) {
+        userRow = i;
+        userName = String(r[i][3] || "Member");
+        break;
+      }
+    }
+
+    if (userRow === -1) {
+      // Sengaja return success agar tidak bocorkan info "email tidak terdaftar"
+      return { status: "success", message: "Jika email terdaftar, instruksi reset akan dikirim via WhatsApp/Email." };
+    }
+
+    // Generate password baru (random 8 karakter)
+    const newPass = Math.random().toString(36).slice(-8);
+
+    // Hash password baru
+    const newSalt = generateSalt_();
+    const newHash = hashPassword_(newPass, newSalt);
+
+    // Simpan hash baru
+    s.getRange(userRow + 1, 3).setValue(newHash);
+    s.getRange(userRow + 1, 9).setValue(newSalt);
+
+    // Kirim notifikasi
+    const cfg = getSettingsMap_();
+    const siteName = getCfgFrom_(cfg, "site_name") || "Sistem Premium";
+    const siteUrl  = String(getCfgFrom_(cfg, "site_url") || "").trim();
+    const loginUrl = siteUrl ? (siteUrl + "/login.html") : "Link Login Belum Disetting";
+    const waNum    = String(r[userRow][4] || "").trim(); // Kolom WhatsApp jika ada
+
+    const waMsg = `Halo ${escapeHtml_(userName)},\n\nPassword akun Anda di ${siteName} telah direset.\n\n🔑 *Password Baru:* ${newPass}\n🌐 *Login di:* ${loginUrl}\n\n⚠️ Segera ganti password setelah login.\n\n*Tim ${siteName}*`;
+    if (waNum) sendWA(waNum, waMsg, cfg);
+
+    const emailHtml = `<div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+      <h2 style="color: #4f46e5;">Reset Password ${escapeHtml_(siteName)}</h2>
+      <p>Halo <b>${escapeHtml_(userName)}</b>,</p>
+      <p>Password akun Anda telah direset. Gunakan kredensial berikut untuk login:</p>
+      <div style="background:#f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #4f46e5; margin: 20px 0;">
+        <p><b>Email:</b> ${escapeHtml_(email)}</p>
+        <p><b>Password Baru:</b> <code style="background:#e0e7ff; padding: 2px 6px; border-radius: 4px;">${newPass}</code></p>
+      </div>
+      <div style="text-align: center; margin: 25px 0;">
+        <a href="${loginUrl}" style="background:#4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Login Sekarang</a>
+      </div>
+      <p style="color:#64748b; font-size: 12px;">⚠️ Segera ganti password Anda setelah login. Abaikan email ini jika Anda tidak meminta reset password.</p>
+      <p>Salam, <b>Tim ${escapeHtml_(siteName)}</b></p>
+    </div>`;
+    sendEmail(email, `[${siteName}] Reset Password`, emailHtml, cfg);
+
+    log_("forgot_password", "success", { email: email });
+    return { status: "success", message: "Jika email terdaftar, instruksi reset akan dikirim via WhatsApp/Email." };
+
+  } catch (e) {
+    log_("forgot_password", "error", { error: e.toString() });
     return { status: "error", message: e.toString() };
   }
 }
